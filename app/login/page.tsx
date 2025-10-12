@@ -1,87 +1,107 @@
-"use client"; // wajib supaya useState bisa jalan di Next.js
-import React, { useState } from "react";
+'use client'
+
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { motion } from 'framer-motion'
+import Link from 'next/link'
+import { FaWhatsapp } from 'react-icons/fa'
 
 export default function LoginPage() {
-  // ✅ State untuk menyimpan input username dan password
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
+  const [username, setUsername] = useState('')
+  const [password, setPassword] = useState('')
+  const router = useRouter() // untuk redirect
 
-  // ✅ Fungsi handleSubmit — disimpan di dalam komponen
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault(); // mencegah reload halaman
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault()
 
-    // validasi sederhana
-    if (username === "admin" && password === "12345") {
-      alert("Login berhasil!");
-      window.location.href = "/dashboard"; // pindah ke halaman dashboard
+    // trim dan lowercase untuk case-insensitive
+    const user = username.trim().toLowerCase()
+    const pass = password.trim()
+
+    if (user === 'admin' && pass === '12345') {
+      alert('Login berhasil!')
+      router.push('/dashboard') // redirect ke AboutPage
     } else {
-      alert("Username atau password salah!");
+      alert('Username atau password salah!')
     }
-  };
+  }
 
-  // ✅ Tampilan form login
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="bg-white shadow-lg rounded-2xl p-8 w-full max-w-md">
-        <h1 className="text-3xl font-bold text-center text-blue-600 mb-6">
-          Login RME
-        </h1>
+    <div className="flex flex-col min-h-screen bg-white text-black">
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          {/* Username */}
-          <div>
-            <label
-              htmlFor="username"
-              className="block text-gray-700 font-medium mb-1"
+      {/* Navbar atas */}
+      <footer className="bg-gray-100 p-6 w-full">
+        <div className="max-w-6xl mx-auto flex flex-col md:flex-row justify-center md:justify-between items-center text-gray-700 gap-4">
+          <div className="flex gap-4 items-center">
+            <Link href="/" className="hover:text-black transition">Home</Link>
+            <Link href="/about" className="hover:text-black transition">About</Link>
+            <Link href="/registrasi" className="hover:text-black transition">Registrasi</Link>
+
+            <a
+              href="https://wa.me/6282219886907?text=Halo,%20saya%20ingin%20menghubungi%20RME%20Project"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1 text-green-600 font-semibold hover:text-green-800 transition"
             >
-              Username
-            </label>
+              <FaWhatsapp /> Hubungi Kami
+            </a>
+          </div>
+        </div>
+      </footer>
+
+      {/* Konten Login */}
+      <main className="flex-1 flex items-center justify-center p-4">
+        <motion.div
+          className="bg-gray-50 rounded-2xl shadow-2xl w-full max-w-md p-8"
+          initial={{ opacity: 0, y: -50 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8 }}
+        >
+          <h1 className="text-3xl font-bold text-center mb-6 text-black">Login</h1>
+
+          <form onSubmit={handleLogin} className="flex flex-col gap-4">
             <input
-              id="username"
               type="text"
+              placeholder="Username"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              className="w-full border border-gray-300 text-black rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
-              placeholder="Masukkan username"
+              className="p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400"
               required
             />
-          </div>
-
-          {/* Password */}
-          <div>
-            <label
-              htmlFor="password"
-              className="block text-gray-700 font-medium mb-1"
-            >
-              Password
-            </label>
             <input
-              id="password"
               type="password"
+              placeholder="Password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full border border-gray-300 text-black rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
-              placeholder="Masukkan password"
+              className="p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400"
               required
             />
-          </div>
 
-          {/* Tombol Login */}
-          <button
-            type="submit"
-            className="w-full bg-blue-600 text-white font-semibold py-2 rounded-lg hover:bg-blue-700 transition"
-          >
-            Login
-          </button>
-        </form>
+            <motion.button
+              type="submit"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="bg-blue-500 text-white font-semibold py-3 rounded-lg mt-2 hover:bg-blue-600 transition"
+            >
+              Login
+            </motion.button>
+          </form>
 
-        <p className="text-center text-sm text-gray-600 mt-4">
-          Belum punya akun?{" "}
-          <a href="/registrasi" className="text-blue-500 hover:underline">
-            Daftar di sini
-          </a>
-        </p>
-      </div>
+          <p className="mt-4 text-center text-gray-700">
+            Belum punya akun?{' '}
+            <Link href="/registrasi" className="text-blue-500 font-semibold hover:underline">
+              Registrasi
+            </Link>
+          </p>
+        </motion.div>
+      </main>
+
+      {/* Footer bawah clean */}
+      <footer className="bg-gray-100 p-6 w-full mt-auto">
+        <div className="max-w-6xl mx-auto text-center text-gray-700">
+          © 2025 RME Project. All rights reserved.
+        </div>
+      </footer>
     </div>
-  );
+  )
 }

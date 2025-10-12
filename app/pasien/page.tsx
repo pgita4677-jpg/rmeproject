@@ -1,5 +1,7 @@
-"use client";
+'use client'
+
 import React, { useState, useEffect } from "react";
+import { motion } from "framer-motion";
 
 interface Resep {
   obat: string;
@@ -30,7 +32,9 @@ interface Pasien {
   riwayat: Kunjungan[];
 }
 
-export default function FarmasiPage() {
+export default function PasienPage() {
+  const today = new Date().toLocaleDateString();
+
   const [pasien, setPasien] = useState<any>({
     noRM: "",
     nama: "",
@@ -77,10 +81,7 @@ export default function FarmasiPage() {
   };
 
   const tambahResep = () => {
-    setPasien({
-      ...pasien,
-      resep: [...pasien.resep, { obat: "", dosis: "", aturan: "" }],
-    });
+    setPasien({ ...pasien, resep: [...pasien.resep, { obat: "", dosis: "", aturan: "" }] });
   };
 
   const cariPasienLama = () => {
@@ -105,7 +106,7 @@ export default function FarmasiPage() {
     e.preventDefault();
 
     const kunjunganBaru: Kunjungan = {
-      tanggal: new Date().toLocaleDateString(),
+      tanggal: today,
       keluhan: pasien.keluhan,
       diagnosa: pasien.diagnosa,
       resep: pasien.resep,
@@ -135,7 +136,7 @@ export default function FarmasiPage() {
     } else if (tipePasien === "lama" && selectedPasien) {
       const updatedPasien: Pasien = {
         ...selectedPasien,
-        riwayat: [...selectedPasien.riwayat, kunjunganBaru],
+        riwayat: [...(selectedPasien.riwayat || []), kunjunganBaru],
       };
       const updatedDaftar = daftarPasien.map(p => (p.noRM === updatedPasien.noRM ? updatedPasien : p));
       setDaftarPasien(updatedDaftar);
@@ -143,6 +144,7 @@ export default function FarmasiPage() {
       alert(`Kunjungan pasien lama berhasil ditambahkan 💙 No. RM: ${updatedPasien.noRM}`);
     }
 
+    // Reset form
     setPasien({
       noRM: "",
       nama: "",
@@ -163,18 +165,24 @@ export default function FarmasiPage() {
     setSearchRM("");
   };
 
+  // Filter pasien untuk hari ini
+  const pasienHariIni = daftarPasien.flatMap(p =>
+    (p.riwayat || []).filter(k => k.tanggal === today)
+      .map(k => ({ ...k, noRM: p.noRM, nama: p.nama, nik: p.nik, alamat: p.alamat }))
+  );
+
   return (
     <div className="min-h-screen bg-gray-50 text-gray-800 flex flex-col items-center p-6">
-      <div className="w-full max-w-6xl bg-white rounded-2xl shadow-lg p-6">
+      <div className="w-full max-w-6xl bg-white rounded-2xl shadow-lg p-6 mb-8">
+        {/* FORM Registrasi pasien */}
         <h1 className="text-3xl md:text-4xl font-bold text-center text-blue-700 mb-6">
           🏥 Registrasi Pasien
         </h1>
 
+        {/* Tipe pasien */}
         {tipePasien === "" && (
           <div className="text-center mb-4">
-            <h2 className="text-lg font-semibold text-blue-700 mb-2">
-              Pilih tipe pasien
-            </h2>
+            <h2 className="text-lg font-semibold text-blue-700 mb-2">Pilih tipe pasien</h2>
             <div className="flex justify-center gap-4">
               <button onClick={() => setTipePasien("baru")} className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
                 Pasien Baru
@@ -186,13 +194,14 @@ export default function FarmasiPage() {
           </div>
         )}
 
+        {/* Cari pasien lama */}
         {tipePasien === "lama" && !selectedPasien && (
           <div className="flex gap-3 mb-4">
             <input
               type="text"
               placeholder="Masukkan No. RM"
               value={searchRM}
-              onChange={(e) => setSearchRM(e.target.value)}
+              onChange={e => setSearchRM(e.target.value)}
               className="border p-2 rounded flex-1"
             />
             <button onClick={cariPasienLama} className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
@@ -201,6 +210,7 @@ export default function FarmasiPage() {
           </div>
         )}
 
+        {/* Form input data */}
         {(tipePasien === "baru" || (tipePasien === "lama" && selectedPasien)) && (
           <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Identitas */}
@@ -216,7 +226,7 @@ export default function FarmasiPage() {
                 <option value="Laki-laki">Laki-laki</option>
                 <option value="Perempuan">Perempuan</option>
               </select>
-              <input name="telepon" placeholder="Telepon" value={pasien.telepon} onChange={handleChange} className="border p-2 rounded w-full" />
+              <input name="telepon" placeholder="Telepon" value={pasien.telepon} onChange={handleChange} className="border p-2 rounded w-full mb-2" />
             </div>
 
             {/* Diagnosa & Resep */}
@@ -250,41 +260,47 @@ export default function FarmasiPage() {
         )}
       </div>
 
-      {/* TABEL DATA */}
-      <div className="w-full max-w-6xl mt-8 overflow-x-auto">
-        <table className="w-full border text-sm">
-          <thead className="bg-blue-600 text-white">
-            <tr>
-              <th className="p-2 border">No. RM</th>
-              <th className="p-2 border">Nama</th>
-              <th className="p-2 border">NIK</th>
-              <th className="p-2 border">Alamat</th>
-              <th className="p-2 border">Tanggal</th>
-              <th className="p-2 border">Diagnosa</th>
-              <th className="p-2 border">Resep</th>
-            </tr>
-          </thead>
-          <tbody>
-            {daftarPasien.flatMap((p) =>
-              (p.riwayat || []).map((r, i) => (
-                <tr key={`${p.noRM}-${i}`} className="border text-center bg-gray-50 hover:bg-gray-100">
+      {/* Tabel pasien hari ini */}
+      <div className="w-full max-w-6xl overflow-x-auto mb-8">
+        <h2 className="text-2xl font-bold text-blue-700 mb-4 text-center">
+          Data Pasien Hari Ini ({today})
+        </h2>
+        {pasienHariIni.length > 0 ? (
+          <table className="w-full border text-sm">
+            <thead className="bg-blue-600 text-white">
+              <tr>
+                <th className="p-2 border">No. RM</th>
+                <th className="p-2 border">Nama</th>
+                <th className="p-2 border">NIK</th>
+                <th className="p-2 border">Alamat</th>
+                <th className="p-2 border">Tanggal</th>
+                <th className="p-2 border">Diagnosa</th>
+                <th className="p-2 border">Resep</th>
+              </tr>
+            </thead>
+            <tbody>
+              {pasienHariIni.map((p, idx) => (
+                <tr key={idx} className="border text-center bg-gray-50 hover:bg-gray-100">
                   <td className="border p-2">{p.noRM}</td>
                   <td className="border p-2">{p.nama}</td>
                   <td className="border p-2">{p.nik}</td>
                   <td className="border p-2">{p.alamat}</td>
-                  <td className="border p-2">{r.tanggal}</td>
-                  <td className="border p-2">{r.diagnosa}</td>
+                  <td className="border p-2">{p.tanggal}</td>
+                  <td className="border p-2">{p.diagnosa}</td>
                   <td className="border p-2">
-                    {r.resep.map((res, idx) => (
-                      <div key={idx}>{`${res.obat} (${res.dosis})`}</div>
+                    {p.resep?.map((r: Resep, i: number) => (
+                      <div key={i}>{`${r.obat} (${r.dosis})`}</div>
                     ))}
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+              ))}
+            </tbody>
+          </table>
+        ) : (
+          <p className="text-gray-500 text-center mt-4">Belum ada pasien hari ini</p>
+        )}
       </div>
+
     </div>
   );
 }
