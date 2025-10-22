@@ -14,7 +14,9 @@ export async function POST(req: Request) {
       );
     }
 
-    const { user, dbName } = found;
+    // ✅ Fix bagian ini
+    const user = found.user || found;
+    const dbName = "rme-system";
 
     // 🔹 Buat token JWT
     const token = jwt.sign(
@@ -28,7 +30,7 @@ export async function POST(req: Request) {
       { expiresIn: "7d" }
     );
 
-    // 🔹 Gunakan NextResponse buat kirim cookie
+    // 🔹 Buat response + cookie
     const res = NextResponse.json({
       success: true,
       message: "Login berhasil",
@@ -40,16 +42,14 @@ export async function POST(req: Request) {
       },
     });
 
-    // 🔹 Simpan token di cookie
     res.cookies.set("token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
       path: "/",
-      maxAge: 7 * 24 * 60 * 60, // 7 hari
+      maxAge: 7 * 24 * 60 * 60,
     });
 
-    // 🔹 Simpan clinic_id di cookie juga (non-httpOnly biar bisa diakses di client)
     res.cookies.set("clinic_id", String(user.clinic_id), {
       httpOnly: false,
       sameSite: "lax",
@@ -66,3 +66,4 @@ export async function POST(req: Request) {
     );
   }
 }
+

@@ -1,11 +1,10 @@
 import ClientPage from "./ClientPage";
 
 interface PageProps {
-  params: {
-    no_rm: string;
-  };
+  params: { no_rm: string };
 }
 
 export default function Page({ params }: PageProps) {
-  return <ClientPage no_rm={params.no_rm} />;
+  const { no_rm } = params;
+  return <ClientPage no_rm={no_rm} />;
 }
