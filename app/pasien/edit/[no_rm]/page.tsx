@@ -1,12 +1,41 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
-export default function DetailPasien({ pasien }: { pasien: any }) {
+export default function Page({ params }: { params: { no_rm: string } }) {
+  const { no_rm } = params;
+  const [pasien, setPasien] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchPasien = async () => {
+      try {
+        const res = await fetch(`/api/pasien/${no_rm}`);
+        const data = await res.json();
+        setPasien(data);
+      } catch (err) {
+        console.error("Gagal mengambil data pasien", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchPasien();
+  }, [no_rm]);
+
+  if (loading) return <div>Loading...</div>;
+  if (!pasien) return <div>Data pasien tidak ditemukan.</div>;
+
+  return <DetailPasien pasien={pasien} />;
+}
+
+// 🔹 Pindahkan komponen DetailPasien ke bawah sini
+function DetailPasien({ pasien }: { pasien: any }) {
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState(pasien);
   const [loading, setLoading] = useState(false);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
+  ) => {
     const { name, value } = e.target;
     setEditData((prev: any) => ({ ...prev, [name]: value }));
   };
@@ -24,7 +53,7 @@ export default function DetailPasien({ pasien }: { pasien: any }) {
       if (data.success) {
         alert("✅ Data pasien berhasil diperbarui!");
         setIsEditing(false);
-        window.location.reload(); // refresh data biar tampil baru
+        window.location.reload();
       } else {
         alert("❌ Gagal update data pasien: " + data.message);
       }
@@ -58,7 +87,6 @@ export default function DetailPasien({ pasien }: { pasien: any }) {
         <p className="col-span-2"><b>Alamat:</b> {pasien.alamat}</p>
       </div>
 
-      {/* 🔸 Modal Edit Pasien */}
       {isEditing && (
         <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
           <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-lg">
