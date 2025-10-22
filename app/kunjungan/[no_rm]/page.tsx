@@ -3,9 +3,9 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-export default function KunjunganPage({ params }: { params: { no_rm: string } }) {
+export default async function KunjunganPage({ params }: { params: Promise<{ no_rm: string }> }) {
+  const { no_rm } = await params;
   const router = useRouter();
-  const { no_rm } = params;
 
   const [formData, setFormData] = useState({
     keluhan: "",
@@ -96,13 +96,16 @@ export default function KunjunganPage({ params }: { params: { no_rm: string } })
           </div>
 
           <div className="flex justify-between mt-8">
-            <button type="button"
+            <button
+              type="button"
               onClick={() => router.push(`/rekam-medis/${no_rm}`)}
               className="px-6 py-2 bg-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-400 transition">
               Kembali
             </button>
 
-            <button type="submit" disabled={loading}
+            <button
+              type="submit"
+              disabled={loading}
               className="px-6 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition disabled:opacity-50">
               {loading ? "Menyimpan..." : "Simpan Kunjungan"}
             </button>
