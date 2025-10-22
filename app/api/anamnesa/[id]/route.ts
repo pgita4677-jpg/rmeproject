@@ -16,12 +16,9 @@ const pool = mysql.createPool(dbConfig);
 // =====================================================
 // GET -> ambil 1 data anamnesa berdasarkan id
 // =====================================================
-export async function GET(
-  req: Request,
-  { params }: { params: { id: string } }
-) {
+export async function GET(req: Request, context: { params: { id: string } }) {
   try {
-    const { id } = params;
+    const { id } = context.params;
 
     const [anamnesaRows]: any = await pool.query(
       `SELECT * FROM anamnesa WHERE id = ?`,
@@ -58,22 +55,17 @@ export async function GET(
 // =====================================================
 // PUT -> update data anamnesa + resep
 // =====================================================
-export async function PUT(
-  req: Request,
-  { params }: { params: { id: string } }
-) {
+export async function PUT(req: Request, context: { params: { id: string } }) {
   try {
-    const { id } = params;
+    const { id } = context.params;
     const body = await req.json();
     const { keluhan, riwayat, tensi, hasil_lab, resep } = body;
 
-    // update anamnesa
     await pool.query(
       `UPDATE anamnesa SET keluhan=?, riwayat=?, tensi=?, hasil_lab=? WHERE id=?`,
       [keluhan, riwayat || "", tensi || "", hasil_lab || "", id]
     );
 
-    // kalau ada resep, hapus dulu resep lama lalu masukkan yang baru
     if (Array.isArray(resep)) {
       await pool.query(`DELETE FROM resep WHERE anamnesa_id = ?`, [id]);
 
@@ -104,14 +96,10 @@ export async function PUT(
 // =====================================================
 // DELETE -> hapus anamnesa + semua resep terkait
 // =====================================================
-export async function DELETE(
-  req: Request,
-  { params }: { params: { id: string } }
-) {
+export async function DELETE(req: Request, context: { params: { id: string } }) {
   try {
-    const { id } = params;
+    const { id } = context.params;
 
-    // hapus resep dulu (biar foreign key aman)
     await pool.query(`DELETE FROM resep WHERE anamnesa_id = ?`, [id]);
     await pool.query(`DELETE FROM anamnesa WHERE id = ?`, [id]);
 
