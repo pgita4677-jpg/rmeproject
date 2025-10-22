@@ -1,197 +1,144 @@
 "use client";
-import React, { useState } from "react";
-
-interface Obat {
-  id: number;
-  nama: string;
-  stok: number;
-  pemasukan: number;
-  pengeluaran: number;
-}
-
-interface Resep {
-  id: number;
-  namaPasien: string;
-  namaObat: string;
-  jumlah: number;
-  tanggal: string;
-}
+import React, { useEffect, useState } from "react";
+import { jsPDF } from "jspdf";
+import autoTable from "jspdf-autotable";
 
 export default function FarmasiPage() {
-  const [obatList, setObatList] = useState<Obat[]>([
-    { id: 1, nama: "Paracetamol", stok: 100, pemasukan: 50, pengeluaran: 20 },
-    { id: 2, nama: "Amoxicillin", stok: 80, pemasukan: 30, pengeluaran: 10 },
-  ]);
+  const [data, setData] = useState<any[]>([]);
+  const [dari, setDari] = useState("");
+  const [sampai, setSampai] = useState("");
 
-  const [resepList, setResepList] = useState<Resep[]>([
-    { id: 1, namaPasien: "Budi", namaObat: "Paracetamol", jumlah: 10, tanggal: "2025-10-11" },
-  ]);
+  const fetchData = async () => {
+    let url = "/api/farmasi";
+    if (dari && sampai) url += `?dari=${dari}&sampai=${sampai}`;
+    const res = await fetch(url);
+    const json = await res.json();
 
-  const [newObat, setNewObat] = useState({ nama: "", stok: 0, pemasukan: 0, pengeluaran: 0 });
-  const [newResep, setNewResep] = useState({ namaPasien: "", namaObat: "", jumlah: 0, tanggal: "" });
+    // Grouping berdasarkan nama/no_rm
+    const grouped: any = {};
+    json.forEach((item: any) => {
+      const key = item.no_rm;
+      if (!grouped[key]) {
+        grouped[key] = {
+          no_rm: item.no_rm,
+          nama_pasien: item.nama_pasien,
+          tanggal: item.tanggal,
+          resep: [],
+        };
+      }
+      grouped[key].resep.push({
+        nama_obat: item.obat,
+        dosis: item.dosis,
+        aturan: item.aturan,
+      });
+    });
 
-  // Tambah obat baru
-  const tambahObat = () => {
-    if (!newObat.nama) return;
-    setObatList([
-      ...obatList,
-      {
-        id: obatList.length + 1,
-        nama: newObat.nama,
-        stok: newObat.stok,
-        pemasukan: newObat.pemasukan,
-        pengeluaran: newObat.pengeluaran,
-      },
-    ]);
-    setNewObat({ nama: "", stok: 0, pemasukan: 0, pengeluaran: 0 });
+    setData(Object.values(grouped));
   };
 
-  // Tambah resep baru
-  const tambahResep = () => {
-    if (!newResep.namaPasien || !newResep.namaObat) return;
-    setResepList([
-      ...resepList,
-      {
-        id: resepList.length + 1,
-        namaPasien: newResep.namaPasien,
-        namaObat: newResep.namaObat,
-        jumlah: newResep.jumlah,
-        tanggal: newResep.tanggal,
-      },
-    ]);
-    setNewResep({ namaPasien: "", namaObat: "", jumlah: 0, tanggal: "" });
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const handlePDF = () => {
+    const doc = new jsPDF();
+    doc.text("Laporan Data Farmasi", 14, 15);
+
+    data.forEach((pasien, index) => {
+      autoTable(doc, {
+        startY: index === 0 ? 25 : doc.lastAutoTable.finalY + 10,
+        head: [[`${pasien.nama_pasien} (${pasien.no_rm})`, "Dosis", "Aturan"]],
+        body: pasien.resep.map((r: any) => [r.nama_obat, r.dosis, r.aturan]),
+      });
+    });
+
+    doc.save("Laporan_Farmasi_Per_Pasien.pdf");
   };
 
   return (
-    <div className="min-h-screen bg-white text-gray-800 p-8">
-      <h1 className="text-3xl font-bold mb-6 text-center text-blue-700">💊 Manajemen Farmasi</h1>
+    <div className="p-6">
+      <h1 className="text-xl font-bold flex items-center gap-2 mb-4">
+        💊 Data Farmasi
+      </h1>
 
-      {/* === Bagian Stok Obat === */}
-      <section className="mb-10 bg-gray-100 p-5 rounded-xl shadow-md">
-        <h2 className="text-2xl font-semibold mb-4 text-blue-600">📦 Stok Obat</h2>
-
-        <div className="grid grid-cols-5 gap-3 mb-4">
-          <input
-            type="text"
-            placeholder="Nama obat"
-            value={newObat.nama}
-            onChange={(e) => setNewObat({ ...newObat, nama: e.target.value })}
-            className="border p-2 rounded"
-          />
-          <input
-            type="number"
-            placeholder="Stok awal"
-            value={newObat.stok}
-            onChange={(e) => setNewObat({ ...newObat, stok: Number(e.target.value) })}
-            className="border p-2 rounded"
-          />
-          <input
-            type="number"
-            placeholder="Pemasukan"
-            value={newObat.pemasukan}
-            onChange={(e) => setNewObat({ ...newObat, pemasukan: Number(e.target.value) })}
-            className="border p-2 rounded"
-          />
-          <input
-            type="number"
-            placeholder="Pengeluaran"
-            value={newObat.pengeluaran}
-            onChange={(e) => setNewObat({ ...newObat, pengeluaran: Number(e.target.value) })}
-            className="border p-2 rounded"
-          />
-          <button
-            onClick={tambahObat}
-            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-          >
-            Tambah Obat
-          </button>
-        </div>
-
-        <table className="w-full border text-sm">
-          <thead className="bg-blue-200 text-left">
-            <tr>
-              <th className="p-2 border">Nama Obat</th>
-              <th className="p-2 border">Stok</th>
-              <th className="p-2 border">Pemasukan</th>
-              <th className="p-2 border">Pengeluaran</th>
-              <th className="p-2 border">Sisa</th>
-            </tr>
-          </thead>
-          <tbody>
-            {obatList.map((o) => (
-              <tr key={o.id}>
-                <td className="border p-2">{o.nama}</td>
-                <td className="border p-2">{o.stok}</td>
-                <td className="border p-2">{o.pemasukan}</td>
-                <td className="border p-2">{o.pengeluaran}</td>
-                <td className="border p-2 font-semibold">{o.stok + o.pemasukan - o.pengeluaran}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </section>
-
-      {/* === Bagian Resep Pasien === */}
-      <section className="bg-gray-100 p-5 rounded-xl shadow-md">
-        <h2 className="text-2xl font-semibold mb-4 text-blue-600">🧾 Resep Pasien</h2>
-
-        <div className="grid grid-cols-5 gap-3 mb-4">
-          <input
-            type="text"
-            placeholder="Nama Pasien"
-            value={newResep.namaPasien}
-            onChange={(e) => setNewResep({ ...newResep, namaPasien: e.target.value })}
-            className="border p-2 rounded"
-          />
-          <input
-            type="text"
-            placeholder="Nama Obat"
-            value={newResep.namaObat}
-            onChange={(e) => setNewResep({ ...newResep, namaObat: e.target.value })}
-            className="border p-2 rounded"
-          />
-          <input
-            type="number"
-            placeholder="Jumlah"
-            value={newResep.jumlah}
-            onChange={(e) => setNewResep({ ...newResep, jumlah: Number(e.target.value) })}
-            className="border p-2 rounded"
-          />
+      {/* Filter tanggal */}
+      <div className="flex gap-4 mb-6 items-end">
+        <div>
+          <label className="block text-sm font-semibold mb-1">Dari tanggal</label>
           <input
             type="date"
-            value={newResep.tanggal}
-            onChange={(e) => setNewResep({ ...newResep, tanggal: e.target.value })}
-            className="border p-2 rounded"
+            className="border rounded px-3 py-2"
+            value={dari}
+            onChange={(e) => setDari(e.target.value)}
           />
-          <button
-            onClick={tambahResep}
-            className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
-          >
-            Tambah Resep
-          </button>
         </div>
+        <div>
+          <label className="block text-sm font-semibold mb-1">Sampai tanggal</label>
+          <input
+            type="date"
+            className="border rounded px-3 py-2"
+            value={sampai}
+            onChange={(e) => setSampai(e.target.value)}
+          />
+        </div>
+        <button
+          onClick={fetchData}
+          className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+        >
+          🔍 Tampilkan
+        </button>
 
-        <table className="w-full border text-sm">
-          <thead className="bg-green-200 text-left">
-            <tr>
-              <th className="p-2 border">Nama Pasien</th>
-              <th className="p-2 border">Nama Obat</th>
-              <th className="p-2 border">Jumlah</th>
-              <th className="p-2 border">Tanggal</th>
-            </tr>
-          </thead>
-          <tbody>
-            {resepList.map((r) => (
-              <tr key={r.id}>
-                <td className="border p-2">{r.namaPasien}</td>
-                <td className="border p-2">{r.namaObat}</td>
-                <td className="border p-2">{r.jumlah}</td>
-                <td className="border p-2">{r.tanggal}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </section>
+        <button
+          onClick={handlePDF}
+          className="ml-auto bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+        >
+          📄 Download PDF
+        </button>
+      </div>
+
+      {/* Tabel per pasien */}
+      {data.length === 0 ? (
+        <div className="text-center py-6 text-gray-500">Tidak ada data resep.</div>
+      ) : (
+        <div className="space-y-6">
+          {data.map((pasien: any, idx) => (
+            <div
+              key={idx}
+              className="border rounded-lg p-4 shadow-sm hover:shadow-md transition"
+            >
+              <h2 className="font-semibold text-lg text-blue-700 mb-1">
+                👤 {pasien.nama_pasien} ({pasien.no_rm})
+              </h2>
+              <p className="text-sm text-gray-500 mb-2">
+                Tanggal: {pasien.tanggal?.split("T")[0]}
+              </p>
+
+              <table className="w-full text-sm border">
+                <thead className="bg-gray-100">
+                  <tr>
+                    <th className="border p-2">Nama Obat</th>
+                    <th className="border p-2">Dosis</th>
+                    <th className="border p-2">Aturan</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pasien.resep.map((r: any, i: number) => (
+                    <tr key={i} className="hover:bg-gray-50">
+                      <td className="border p-2">{r.nama_obat}</td>
+                      <td className="border p-2">{r.dosis}</td>
+                      <td className="border p-2">{r.aturan}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="text-right mt-4 text-sm text-gray-600">
+        Total pasien: {data.length}
+      </div>
     </div>
   );
 }
