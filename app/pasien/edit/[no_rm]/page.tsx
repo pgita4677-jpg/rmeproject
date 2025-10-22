@@ -1,8 +1,8 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 
 export default function Page({ params }: { params: { no_rm: string } }) {
-  const { no_rm } = params;
+  const { no_rm } = params; // tanpa await, karena bukan Promise
   const [pasien, setPasien] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
@@ -27,7 +27,6 @@ export default function Page({ params }: { params: { no_rm: string } }) {
   return <DetailPasien pasien={pasien} />;
 }
 
-// 🔹 Pindahkan komponen DetailPasien ke bawah sini
 function DetailPasien({ pasien }: { pasien: any }) {
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState(pasien);
