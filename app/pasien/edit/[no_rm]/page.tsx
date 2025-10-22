@@ -6,8 +6,8 @@ interface PageProps {
   };
 }
 
-// ❗ WAJIB pakai async function untuk App Router dynamic route
-export default async function Page({ params }: PageProps) {
+// ❌ Jangan pakai async karena kita tidak melakukan fetch di server
+export default function Page({ params }: PageProps) {
   const { no_rm } = params;
   return <ClientPage no_rm={no_rm} />;
 }
