@@ -9,10 +9,11 @@ export default function ClientPage({ no_rm }: { no_rm: string }) {
     const fetchPasien = async () => {
       try {
         const res = await fetch(`/api/pasien/${no_rm}`);
+        if (!res.ok) throw new Error("Gagal fetch data pasien");
         const data = await res.json();
         setPasien(data);
       } catch (err) {
-        console.error("Gagal mengambil data pasien", err);
+        console.error("❌ Gagal mengambil data pasien:", err);
       } finally {
         setLoading(false);
       }
@@ -91,20 +92,58 @@ function DetailPasien({ pasien }: { pasien: any }) {
             <h3 className="text-xl font-bold mb-4 text-gray-800">Edit Data Pasien</h3>
 
             <div className="space-y-3">
-              <input name="nama" value={editData.nama} onChange={handleChange} placeholder="Nama" className="w-full border p-2 rounded" />
-              <input type="date" name="tanggal_lahir" value={editData.tanggal_lahir?.substring(0,10)} onChange={handleChange} className="w-full border p-2 rounded" />
-              <select name="jenis_kelamin" value={editData.jenis_kelamin} onChange={handleChange} className="w-full border p-2 rounded">
+              <input
+                name="nama"
+                value={editData.nama || ""}
+                onChange={handleChange}
+                placeholder="Nama"
+                className="w-full border p-2 rounded"
+              />
+              <input
+                type="date"
+                name="tanggal_lahir"
+                value={editData.tanggal_lahir?.substring(0, 10) || ""}
+                onChange={handleChange}
+                className="w-full border p-2 rounded"
+              />
+              <select
+                name="jenis_kelamin"
+                value={editData.jenis_kelamin || ""}
+                onChange={handleChange}
+                className="w-full border p-2 rounded"
+              >
                 <option value="">Pilih Jenis Kelamin</option>
                 <option value="L">Laki-laki</option>
                 <option value="P">Perempuan</option>
               </select>
-              <input name="no_hp" value={editData.no_hp} onChange={handleChange} placeholder="No HP" className="w-full border p-2 rounded" />
-              <textarea name="alamat" value={editData.alamat} onChange={handleChange} placeholder="Alamat" className="w-full border p-2 rounded" />
+              <input
+                name="no_hp"
+                value={editData.no_hp || ""}
+                onChange={handleChange}
+                placeholder="No HP"
+                className="w-full border p-2 rounded"
+              />
+              <textarea
+                name="alamat"
+                value={editData.alamat || ""}
+                onChange={handleChange}
+                placeholder="Alamat"
+                className="w-full border p-2 rounded"
+              />
             </div>
 
             <div className="flex justify-end gap-3 mt-5">
-              <button onClick={() => setIsEditing(false)} className="px-4 py-2 bg-gray-300 rounded-lg">Batal</button>
-              <button onClick={handleSave} disabled={loading} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+              <button
+                onClick={() => setIsEditing(false)}
+                className="px-4 py-2 bg-gray-300 rounded-lg"
+              >
+                Batal
+              </button>
+              <button
+                onClick={handleSave}
+                disabled={loading}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              >
                 {loading ? "Menyimpan..." : "Simpan"}
               </button>
             </div>
