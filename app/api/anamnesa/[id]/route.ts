@@ -16,9 +16,9 @@ const pool = mysql.createPool(dbConfig);
 // =====================================================
 // GET -> ambil 1 data anamnesa berdasarkan id
 // =====================================================
-export async function GET(req: Request, context: { params: { id: string } }) {
+export async function GET(req, { params }) {
   try {
-    const { id } = context.params;
+    const { id } = params;
 
     const [anamnesaRows]: any = await pool.query(
       `SELECT * FROM anamnesa WHERE id = ?`,
@@ -55,9 +55,9 @@ export async function GET(req: Request, context: { params: { id: string } }) {
 // =====================================================
 // PUT -> update data anamnesa + resep
 // =====================================================
-export async function PUT(req: Request, context: { params: { id: string } }) {
+export async function PUT(req, { params }) {
   try {
-    const { id } = context.params;
+    const { id } = params;
     const body = await req.json();
     const { keluhan, riwayat, tensi, hasil_lab, resep } = body;
 
@@ -96,9 +96,9 @@ export async function PUT(req: Request, context: { params: { id: string } }) {
 // =====================================================
 // DELETE -> hapus anamnesa + semua resep terkait
 // =====================================================
-export async function DELETE(req: Request, context: { params: { id: string } }) {
+export async function DELETE(req, { params }) {
   try {
-    const { id } = context.params;
+    const { id } = params;
 
     await pool.query(`DELETE FROM resep WHERE anamnesa_id = ?`, [id]);
     await pool.query(`DELETE FROM anamnesa WHERE id = ?`, [id]);
