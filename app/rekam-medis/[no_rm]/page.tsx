@@ -31,7 +31,9 @@ interface Anamnesa {
 }
 
 export default function RekamMedisPage() {
-  const { no_rm } = useParams();
+  const params = useParams() as {no_rm: string};
+  const no_rm = params.no_rm;
+  
   const router = useRouter();
 
   const [pasien, setPasien] = useState<Pasien | null>(null);
