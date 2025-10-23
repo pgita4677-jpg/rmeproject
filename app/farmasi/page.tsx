@@ -9,31 +9,40 @@ export default function FarmasiPage() {
   const [sampai, setSampai] = useState("");
 
   const fetchData = async () => {
-    let url = "/api/farmasi";
-    if (dari && sampai) url += `?dari=${dari}&sampai=${sampai}`;
-    const res = await fetch(url);
-    const json = await res.json();
+    try {
+      let url = "/api/farmasi";
+      if (dari && sampai) url += `?dari=${dari}&sampai=${sampai}`;
 
-    // Grouping berdasarkan nama/no_rm
-    const grouped: any = {};
-    json.forEach((item: any) => {
-      const key = item.no_rm;
-      if (!grouped[key]) {
-        grouped[key] = {
-          no_rm: item.no_rm,
-          nama_pasien: item.nama_pasien,
-          tanggal: item.tanggal,
-          resep: [],
-        };
-      }
-      grouped[key].resep.push({
-        nama_obat: item.obat,
-        dosis: item.dosis,
-        aturan: item.aturan,
+      const res = await fetch(url);
+      const json = await res.json();
+
+      console.log("Respon API farmasi:", json);
+
+      const items = Array.isArray(json) ? json : json.data || [];
+
+      const grouped: any = {};
+      items.forEach((item: any) => {
+        const key = item.no_rm;
+        if (!grouped[key]) {
+          grouped[key] = {
+            no_rm: item.no_rm,
+            nama_pasien: item.nama_pasien,
+            tanggal: item.tanggal,
+            resep: [],
+          };
+        }
+        grouped[key].resep.push({
+          nama_obat: item.obat,
+          dosis: item.dosis,
+          aturan: item.aturan,
+        });
       });
-    });
 
-    setData(Object.values(grouped));
+      setData(Object.values(grouped));
+    } catch (error) {
+      console.error("Gagal mengambil data farmasi:", error);
+      setData([]);
+    }
   };
 
   useEffect(() => {
@@ -45,8 +54,14 @@ export default function FarmasiPage() {
     doc.text("Laporan Data Farmasi", 14, 15);
 
     data.forEach((pasien, index) => {
+      // ✅ Gunakan optional chaining biar tidak error saat belum ada lastAutoTable
+      const startY =
+        index === 0 ? 25 : (doc as any).lastAutoTable?.finalY
+          ? (doc as any).lastAutoTable.finalY + 10
+          : 25;
+
       autoTable(doc, {
-        startY: index === 0 ? 25 : doc.lastAutoTable.finalY + 10,
+        startY,
         head: [[`${pasien.nama_pasien} (${pasien.no_rm})`, "Dosis", "Aturan"]],
         body: pasien.resep.map((r: any) => [r.nama_obat, r.dosis, r.aturan]),
       });
@@ -98,7 +113,9 @@ export default function FarmasiPage() {
 
       {/* Tabel per pasien */}
       {data.length === 0 ? (
-        <div className="text-center py-6 text-gray-500">Tidak ada data resep.</div>
+        <div className="text-center py-6 text-gray-500">
+          Tidak ada data resep.
+        </div>
       ) : (
         <div className="space-y-6">
           {data.map((pasien: any, idx) => (

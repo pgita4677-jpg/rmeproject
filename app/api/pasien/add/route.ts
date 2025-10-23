@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import mysql from "mysql2/promise";
 
-// 🔧 Koneksi ke database (1 user versi)
+// 🔧 Koneksi ke database
 const pool = mysql.createPool({
   host: "127.0.0.1",
   user: "root",
@@ -32,7 +32,7 @@ export async function POST(req: Request) {
       );
     }
 
-    // 🔹 Simpan data pasien
+    // 🔹 Simpan data pasien baru ke tabel `pasien`
     const [result]: any = await pool.query(
       `INSERT INTO pasien 
         (no_rm, nama, tanggal_lahir, usia, jenis_kelamin, no_hp, alamat, nik) 
@@ -40,10 +40,17 @@ export async function POST(req: Request) {
       [no_rm, nama, tanggal_lahir, usia, jenis_kelamin, no_hp, alamat, nik]
     );
 
+    // 🔹 Setelah pasien disimpan, tambahkan juga catatan ke `rekam_medis`
+    await pool.query(
+      `INSERT INTO rekam_medis (no_rm, nama, status, tanggal_terakhir)
+       VALUES (?, ?, 'Baru', NOW())`,
+      [no_rm, nama]
+    );
+
     return NextResponse.json({
       success: true,
-      message: "✅ Data pasien berhasil disimpan",
-      no_rm, // dikirim biar bisa redirect ke anamnesa
+      message: "✅ Data pasien baru berhasil disimpan",
+      no_rm,
       insertedId: result.insertId,
     });
   } catch (err: any) {

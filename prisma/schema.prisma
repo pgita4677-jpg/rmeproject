@@ -1,0 +1,114 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model anamnesa {
+  id         Int       @id @default(autoincrement())
+  no_rm      String    @db.VarChar(20)
+  keluhan    String?   @db.Text
+  riwayat    String?   @db.Text
+  tensi      String?   @db.VarChar(20)
+  hasil_lab  String?   @db.Text
+  created_at DateTime? @default(now()) @db.Timestamp(0)
+  resep      resep[]
+}
+
+model clinics {
+  id      Int     @id @default(autoincrement())
+  name    String? @db.VarChar(100)
+  address String? @db.VarChar(255)
+  users   users[]
+}
+
+model kunjungan {
+  id       Int       @id @default(autoincrement())
+  no_rm    String    @db.VarChar(50)
+  tanggal  DateTime? @default(now()) @db.DateTime(0)
+  keluhan  String?   @db.Text
+  diagnosa String?   @db.Text
+  tindakan String?   @db.Text
+  pasien   pasien    @relation(fields: [no_rm], references: [no_rm], onDelete: NoAction, onUpdate: NoAction, map: "kunjungan_ibfk_1")
+
+  @@index([no_rm], map: "no_rm")
+}
+
+model obat {
+  id          Int    @id @default(autoincrement())
+  no_rm       String @db.VarChar(20)
+  nama_pasien String @db.VarChar(100)
+  obat        String @db.VarChar(100)
+}
+
+model pasien {
+  id            Int                   @id @default(autoincrement())
+  no_rm         String                @unique(map: "no_rm") @db.VarChar(20)
+  nama          String                @db.VarChar(150)
+  status        String?               @db.VarChar(50)
+  tanggal_lahir DateTime?             @db.Date
+  usia          String?               @db.VarChar(10)
+  jenis_kelamin pasien_jenis_kelamin?
+  alamat        String?               @db.Text
+  no_hp         String?               @db.VarChar(20)
+  nik           String?               @db.VarChar(20)
+  kunjungan     kunjungan[]
+}
+
+model rekam_medis {
+  id            Int                @id @default(autoincrement())
+  no_rm         String             @db.VarChar(50)
+  nama_pasien   String             @db.VarChar(255)
+  dokter        String?            @db.VarChar(255)
+  tanggal_masuk DateTime           @db.DateTime(0)
+  status        rekam_medis_status @default(baru)
+  diagnosa      String?            @db.Text
+  created_at    DateTime?          @default(now()) @db.DateTime(0)
+  obat          String?            @db.VarChar(255)
+  keluhan       String?            @db.Text
+  terapi        String?            @db.Text
+  tensi         String?            @db.VarChar(20)
+  hemoglobin    String?            @db.VarChar(20)
+  leukosit      String?            @db.VarChar(20)
+  trombosit     String?            @db.VarChar(20)
+  gula_darah    String?            @db.VarChar(20)
+  resep         Json?
+}
+
+model resep {
+  id          Int       @id @default(autoincrement())
+  no_rm       String    @db.VarChar(20)
+  nama_pasien String?   @db.VarChar(100)
+  diagnosa    String?   @db.Text
+  anamnesa_id Int?
+  nama_obat   String?   @db.VarChar(100)
+  dosis       String?   @db.VarChar(50)
+  aturan      String?   @db.VarChar(100)
+  tanggal     DateTime? @default(now()) @db.Timestamp(0)
+  anamnesa    anamnesa? @relation(fields: [anamnesa_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "resep_ibfk_1")
+
+  @@index([anamnesa_id], map: "anamnesa_id")
+}
+
+model users {
+  id        Int      @id @default(autoincrement())
+  username  String?  @unique(map: "username") @db.VarChar(100)
+  password  String?  @db.VarChar(255)
+  clinic_id Int?
+  clinics   clinics? @relation(fields: [clinic_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "users_ibfk_1")
+
+  @@index([clinic_id], map: "clinic_id")
+}
+
+enum rekam_medis_status {
+  baru
+  lama
+}
+
+enum pasien_jenis_kelamin {
+  L
+  P
+}

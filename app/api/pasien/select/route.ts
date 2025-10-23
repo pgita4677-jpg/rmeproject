@@ -1,56 +1,45 @@
 import { NextResponse } from "next/server";
-import { connectDB } from "@/lib/db";
 import mysql from "mysql2/promise";
 
-// 🔹 POST /api/pasien/select
-export async function POST(req: Request) {
+// Koneksi ke database
+const pool = mysql.createPool({
+  host: "localhost",
+  user: "root",
+  password: "",
+  database: "rme-system",
+});
+
+export async function GET() {
   try {
-    const db = await connectDB();
-    const body = await req.json();
+    const sql = `
+      SELECT 
+        p.no_rm,
+        p.nama,
+        p.status, -- ✅ Ambil langsung dari tabel pasien
+        (
+          SELECT a.keluhan
+          FROM anamnesa a
+          WHERE a.no_rm = p.no_rm
+          ORDER BY a.created_at DESC
+          LIMIT 1
+        ) AS keluhan,
+        (
+          SELECT a.created_at
+          FROM anamnesa a
+          WHERE a.no_rm = p.no_rm
+          ORDER BY a.created_at DESC
+          LIMIT 1
+        ) AS tanggal_terakhir
+      FROM pasien p
+      ORDER BY p.id DESC
+    `;
 
-    const {
-      no_rm,
-      keluhan,
-      riwayat,
-      tensi,
-      hasil_lab,
-      resep = [], // array [{ nama_obat, dosis, aturan }]
-    } = body;
-
-    // 🔹 Pastikan pasiennya ada
-    const [cekPasien]: any = await db.execute("SELECT * FROM pasien WHERE no_rm = ?", [no_rm]);
-    if (cekPasien.length === 0) {
-      return NextResponse.json({ message: "Pasien tidak ditemukan" }, { status: 404 });
-    }
-
-    // 🔹 Tambahkan data kunjungan baru
-    const [insertKunjungan]: any = await db.execute(
-      `INSERT INTO kunjungan (no_rm, keluhan, riwayat, tensi, hasil_lab, tanggal_kunjungan)
-       VALUES (?, ?, ?, ?, ?, NOW())`,
-      [no_rm, keluhan, riwayat, tensi, hasil_lab]
-    );
-
-    const id_kunjungan = insertKunjungan.insertId;
-
-    // 🔹 Tambahkan resep (jika ada)
-    if (Array.isArray(resep) && resep.length > 0) {
-      for (const r of resep) {
-        await db.execute(
-          `INSERT INTO resep (id_kunjungan, nama_obat, dosis, aturan)
-           VALUES (?, ?, ?, ?)`,
-          [id_kunjungan, r.nama_obat, r.dosis, r.aturan]
-        );
-      }
-    }
-
-    return NextResponse.json({
-      message: "✅ Kunjungan pasien lama berhasil ditambahkan",
-      id_kunjungan,
-    });
-  } catch (err: any) {
-    console.error("🔥 Error di /api/pasien/select:", err);
+    const [rows]: any = await pool.query(sql);
+    return NextResponse.json(rows);
+  } catch (error: any) {
+    console.error("❌ Error GET /rekam-medis:", error);
     return NextResponse.json(
-      { message: "Terjadi kesalahan server", error: err.message },
+      { success: false, message: "Gagal mengambil data rekam medis", error: error.message },
       { status: 500 }
     );
   }

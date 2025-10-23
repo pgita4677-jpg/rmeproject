@@ -1,7 +1,6 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import Link from 'next/link'
 import { FaBullseye, FaTasks, FaClipboardList, FaWhatsapp } from 'react-icons/fa'
 
 export default function AboutPage() {
@@ -25,30 +24,6 @@ export default function AboutPage() {
 
   return (
     <div className="flex flex-col min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 text-gray-800">
-      {/* 🔹 Navbar */}
-      <nav className="bg-white/80 backdrop-blur-md shadow-sm sticky top-0 z-50">
-        <div className="max-w-6xl mx-auto flex justify-between items-center p-4">
-          <Link href="/" className="text-2xl font-bold text-blue-600 hover:text-blue-800 transition">
-            🩺 RME Project
-          </Link>
-
-          <div className="flex gap-6 text-gray-700 font-medium">
-            <Link href="/" className="hover:text-blue-600 transition">Home</Link>
-            <Link href="/login" className="hover:text-blue-600 transition">Login</Link>
-            <Link href="/registrasi" className="hover:text-blue-600 transition">Registrasi</Link>
-          </div>
-
-          <a
-            href="https://wa.me/6282219886907?text=Halo,%20saya%20ingin%20menghubungi%20RME%20Project"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded-lg transition"
-          >
-            <FaWhatsapp /> Hubungi Kami
-          </a>
-        </div>
-      </nav>
-
       {/* 🔹 Hero Section */}
       <section className="flex flex-col items-center text-center mt-16 px-6">
         <motion.h1
@@ -116,14 +91,6 @@ export default function AboutPage() {
           🚀 Hubungi Sekarang
         </a>
       </motion.section>
-
-      {/* 🔹 Footer */}
-      <footer className="bg-gray-900 text-gray-300 text-sm py-6">
-        <div className="max-w-6xl mx-auto text-center">
-          <p>© {new Date().getFullYear()} RME Project. Semua hak dilindungi.</p>
-          <p className="text-gray-500 mt-1">Dibuat dengan ❤️ untuk pelayanan kesehatan digital.</p>
-        </div>
-      </footer>
     </div>
   )
 }

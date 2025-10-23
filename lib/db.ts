@@ -1,34 +1,23 @@
 import mysql from "mysql2/promise";
 import bcrypt from "bcryptjs";
 
-// ✅ Konfigurasi database tunggal
 const DB_CONFIG = {
-  host: "127.0.0.1",
-  user: "root",
-  password: "",
-  database: "rme-system",
+  host: process.env.MYSQL_HOST || "127.0.0.1",
+  user: process.env.MYSQL_USER || "root",
+  password: process.env.MYSQL_PASSWORD || "",
+  database: process.env.MYSQL_DATABASE || "rme-system",
 };
 
-// 🔹 Fungsi koneksi tunggal
 export async function getConnection() {
   return await mysql.createConnection(DB_CONFIG);
 }
 
-// 🔹 Alias agar file lain tetap bisa pakai connectDB()
-export async function connectDB() {
-  return await getConnection();
-}
+export const connectDB = getConnection; // ✅ tambahkan ini
 
-// 🔹 Fungsi login user
 export async function findUser(username: string, password: string) {
   try {
     const conn = await getConnection();
-
-    const [rows]: any = await conn.query(
-      "SELECT * FROM users WHERE username = ?",
-      [username]
-    );
-
+    const [rows]: any = await conn.query("SELECT * FROM users WHERE username = ?", [username]);
     await conn.end();
 
     if (rows.length > 0) {
@@ -37,7 +26,7 @@ export async function findUser(username: string, password: string) {
       if (valid) return { user };
     }
   } catch (err: any) {
-    console.error("❌ Gagal akses database:", err.message);
+    console.error("❌ DB Error:", err.message);
   }
 
   return null;

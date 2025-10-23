@@ -1,130 +1,66 @@
 import { NextResponse } from "next/server";
 import mysql from "mysql2/promise";
 
-// 🔹 Pool koneksi
+// 🔧 Koneksi ke database
 const pool = mysql.createPool({
-  host: "localhost",
+  host: "127.0.0.1",
   user: "root",
   password: "",
   database: "rme-system",
+  port: 3306,
 });
 
-// 🔸 POST → Tambah pasien baru
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { no_rm, nama, tanggal_lahir, usia, jenis_kelamin, alamat, no_hp, nik } = body;
-
-    // ✅ Validasi sederhana
-    if (!no_rm || !nama || !jenis_kelamin) {
-      return NextResponse.json(
-        { success: false, message: "Data tidak lengkap (no_rm, nama, jenis_kelamin wajib diisi)" },
-        { status: 400 }
-      );
-    }
-
-    const sql = `
-      INSERT INTO pasien (no_rm, nama, tanggal_lahir, usia, jenis_kelamin, alamat, no_hp, nik)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `;
-    const [result]: any = await pool.query(sql, [
+    const {
       no_rm,
       nama,
       tanggal_lahir,
       usia,
       jenis_kelamin,
-      alamat,
       no_hp,
+      alamat,
       nik,
-    ]);
+    } = body;
 
-    return NextResponse.json({
-      success: true,
-      message: "✅ Data pasien berhasil disimpan",
-      id: result.insertId,
-    });
-  } catch (error: any) {
-    console.error("❌ Error API /pasien (POST):", error);
-    return NextResponse.json(
-      { success: false, message: "Gagal simpan data", error: error.message },
-      { status: 500 }
-    );
-  }
-}
-
-// 🔸 GET → Ambil semua pasien atau 1 pasien berdasarkan no_rm
-export async function GET(req: Request) {
-  try {
-    const { searchParams } = new URL(req.url);
-    const no_rm = searchParams.get("no_rm");
-
-    let rows: any[] = [];
-
-    if (no_rm) {
-      const [data]: any = await pool.query("SELECT * FROM pasien WHERE no_rm = ?", [no_rm]);
-      rows = data;
-    } else {
-      const [data]: any = await pool.query("SELECT * FROM pasien ORDER BY id DESC");
-      rows = data;
-    }
-
-    return NextResponse.json({ success: true, data: rows });
-  } catch (error) {
-    console.error("❌ Error GET /pasien:", error);
-    return NextResponse.json(
-      { success: false, message: "Gagal mengambil data pasien" },
-      { status: 500 }
-    );
-  }
-}
-
-// 🔸 PUT → Update data pasien berdasarkan no_rm
-export async function PUT(req: Request) {
-  try {
-    const { searchParams } = new URL(req.url);
-    const no_rm = searchParams.get("no_rm");
-
-    if (!no_rm) {
+    // 🔹 Validasi data wajib
+    if (!no_rm || !nama) {
       return NextResponse.json(
-        { success: false, message: "Parameter no_rm wajib disertakan di URL" },
+        { success: false, message: "Nomor RM dan Nama wajib diisi" },
         { status: 400 }
       );
     }
 
-    const body = await req.json();
-    const { nama, tanggal_lahir, usia, jenis_kelamin, alamat, no_hp, nik } = body;
+    // 🔹 Simpan data pasien baru ke tabel `pasien`
+    const [result]: any = await pool.query(
+      `INSERT INTO pasien 
+        (no_rm, nama, tanggal_lahir, usia, jenis_kelamin, no_hp, alamat, nik, status) 
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'Baru')`,
+      [no_rm, nama, tanggal_lahir, usia, jenis_kelamin, no_hp, alamat, nik]
+    );
 
-    const sql = `
-      UPDATE pasien 
-      SET nama = ?, tanggal_lahir = ?, usia = ?, jenis_kelamin = ?, alamat = ?, no_hp = ?, nik = ?
-      WHERE no_rm = ?
-    `;
-    const [result]: any = await pool.query(sql, [
-      nama,
-      tanggal_lahir,
-      usia,
-      jenis_kelamin,
-      alamat,
-      no_hp,
-      nik,
-      no_rm,
-    ]);
-
-    if (result.affectedRows === 0) {
-      return NextResponse.json(
-        { success: false, message: "Pasien tidak ditemukan" },
-        { status: 404 }
-      );
-    }
+    // 🔹 Catat juga ke `rekam_medis`
+    await pool.query(
+      `INSERT INTO rekam_medis (no_rm, nama, status, tanggal_terakhir)
+       VALUES (?, ?, 'Baru', NOW())`,
+      [no_rm, nama]
+    );
 
     return NextResponse.json({
       success: true,
-      message: "✅ Data pasien berhasil diperbarui",
+      message: "✅ Data pasien baru berhasil disimpan",
+      no_rm,
+      insertedId: result.insertId,
     });
-  } catch (error: any) {
-    console.error("❌ Error API /pasien (PUT):", error);
+  } catch (err: any) {
+    console.error("❌ Gagal simpan pasien:", err.message);
     return NextResponse.json(
-      { success: false, message: "Gagal memperbarui data pasien", error: error.message },
+      {
+        success: false,
+        message: "Gagal menyimpan data pasien",
+        error: err.message,
+      },
       { status: 500 }
     );
   }

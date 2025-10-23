@@ -1,20 +1,16 @@
 import { NextResponse } from "next/server";
-import mysql from "mysql2/promise";
+import { connectDB } from "@/lib/db";
 
-// Koneksi ke database
-const pool = mysql.createPool({
-  host: "localhost",
-  user: "root",
-  password: "",
-  database: "rme-system",
-});
-
+// 🔹 GET /api/rekam-medis
 export async function GET() {
   try {
-    const sql = `
+    const db = await connectDB();
+
+    const [rows]: any = await db.query(`
       SELECT 
         p.no_rm,
         p.nama,
+        p.status,
         (
           SELECT a.keluhan
           FROM anamnesa a
@@ -31,14 +27,15 @@ export async function GET() {
         ) AS tanggal_terakhir
       FROM pasien p
       ORDER BY p.id DESC
-    `;
+    `);
 
-    const [rows]: any = await pool.query(sql);
+    await db.end();
+
     return NextResponse.json(rows);
-  } catch (error: any) {
-    console.error("❌ Error GET /rekam-medis:", error);
+  } catch (err: any) {
+    console.error("❌ Error GET /rekam-medis:", err);
     return NextResponse.json(
-      { success: false, message: "Gagal mengambil data rekam medis", error: error.message },
+      { success: false, message: "Gagal mengambil data rekam medis", error: err.message },
       { status: 500 }
     );
   }

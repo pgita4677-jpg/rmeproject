@@ -1,26 +1,41 @@
-import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
-import jwt from "jsonwebtoken";
+import { NextRequest, NextResponse } from "next/server";
+import { jwtVerify } from "jose";
 
-export function middleware(req: NextRequest) {
+const SECRET = process.env.JWT_SECRET || "rahasia_super_kamu";
+
+// Konversi secret ke bentuk Uint8Array
+const encoder = new TextEncoder();
+const secretKey = encoder.encode(SECRET);
+
+export async function middleware(req: NextRequest) {
+  const { pathname } = req.nextUrl;
+
+  // 🚫 Abaikan halaman publik
+  if (
+    pathname.startsWith("/login") ||
+    pathname.startsWith("/api/login") ||
+    pathname.startsWith("/_next") ||
+    pathname.startsWith("/favicon.ico")
+  ) {
+    return NextResponse.next();
+  }
+
+  // 🔹 Cek token dari cookie
   const token = req.cookies.get("token")?.value;
 
-  // Kalau gak ada token → arahkan ke login
   if (!token) {
+    console.log("🚫 Tidak ada token, redirect ke login");
     return NextResponse.redirect(new URL("/login", req.url));
   }
 
   try {
-    // Verifikasi token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
+    const { payload } = await jwtVerify(token, secretKey);
+    console.log("✅ Token valid:", payload);
 
-    // 🔹 FIX: gunakan "clinic_id" (underscore), sesuai yang kamu simpan waktu login
-    if (!decoded.clinic_id) {
-      console.warn("⚠️ clinic_id tidak ada di token, redirect login");
-      return NextResponse.redirect(new URL("/login", req.url));
-    }
+    // Simpan data user di request attributes (optional)
+    req.headers.set("x-user-id", String(payload.id));
+    req.headers.set("x-username", String(payload.username));
 
-    // ✅ Token valid, lanjut ke halaman berikutnya
     return NextResponse.next();
   } catch (err) {
     console.error("❌ Token invalid:", err);
@@ -28,12 +43,6 @@ export function middleware(req: NextRequest) {
   }
 }
 
-// 🔹 Middleware ini hanya aktif untuk halaman pasien (bisa tambah nanti)
 export const config = {
-  matcher: [ "/dashboard/:path*",
-    "/pasien/:path*",
-    "/anamnesa/:path*",
-    "/laporan/:path*",
-  ],
-  runtime: "nodejs"
+  matcher: ["/((?!api/login|login|_next|favicon.ico).*)"],
 };

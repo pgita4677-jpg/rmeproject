@@ -16,13 +16,12 @@ export default function RekamMedisPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const res = await fetch("/api/rekam-medis", { cache: "no-store" }); // ⬅️ hindari cache
+        const res = await fetch("/api/rekam-medis", { cache: "no-store" });
         if (!res.ok) throw new Error("Gagal memuat data");
 
         const data = await res.json();
-        console.log("✅ Data dari API:", data); // ⬅️ Debug sementara
-
         const records = Array.isArray(data) ? data : data.data || [];
+
         setRekamList(records);
         setFilteredList(records);
         setError("");
@@ -52,7 +51,7 @@ export default function RekamMedisPage() {
   const handlePDF = () => {
     const doc = new jsPDF();
     doc.setFontSize(16);
-    doc.text("📋 Laporan Rekam Medis Pasien", 14, 15);
+    doc.text("Laporan Rekam Medis Pasien", 14, 15);
     doc.setFontSize(11);
     doc.text(`Tanggal Cetak: ${new Date().toLocaleDateString("id-ID")}`, 14, 25);
 
@@ -76,7 +75,6 @@ export default function RekamMedisPage() {
     const total = filteredList.length;
     doc.text(`Total Pasien: ${total}`, 14, (doc as any).lastAutoTable.finalY + 10);
 
-    // 🔹 Tambahkan nomor halaman
     const pageCount = (doc as any).internal.getNumberOfPages?.() || 1;
     for (let i = 1; i <= pageCount; i++) {
       doc.setPage(i);
@@ -91,33 +89,27 @@ export default function RekamMedisPage() {
     doc.save("Laporan_Rekam_Medis.pdf");
   };
 
-  // 🔹 Loading state
-  if (loading)
-    return <p className="text-center py-10">⏳ Memuat data...</p>;
+  if (loading) return <p className="text-center py-10">Memuat data...</p>;
+  if (error) return <p className="text-center text-red-600 py-10">{error}</p>;
 
-  // 🔹 Error state
-  if (error)
-    return <p className="text-center text-red-600 py-10">{error}</p>;
-
-  // 🔹 Tampilan utama
   return (
     <div className="max-w-5xl mx-auto p-6 space-y-6">
       <div className="flex justify-between items-center flex-wrap gap-3">
-        <h1 className="text-2xl font-bold">🩺 Daftar Rekam Medis Pasien</h1>
+        <h1 className="text-2xl font-bold">Daftar Rekam Medis Pasien</h1>
         <div className="flex gap-3 items-center">
           <input
             type="text"
-            placeholder="🔍 Cari nama atau No RM..."
+            placeholder="Cari nama atau No RM..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+            className="border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
           />
           <button
             onClick={handlePDF}
-            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+            className="border text-sm px-4 py-2 rounded hover:bg-gray-100"
             title="Download laporan rekam medis dalam format PDF"
           >
-            🧾 Download PDF
+            Download PDF
           </button>
         </div>
       </div>
@@ -152,19 +144,16 @@ export default function RekamMedisPage() {
                   <td className="border p-2 text-center">
                     <button
                       onClick={() => router.push(`/rekam-medis/${r.no_rm}`)}
-                      className="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700"
+                      className="border px-3 py-1 rounded hover:bg-gray-100"
                     >
-                      🔍 Lihat Detail
+                      Lihat Detail
                     </button>
                   </td>
                 </tr>
               ))
             ) : (
               <tr>
-                <td
-                  colSpan={5}
-                  className="border text-center text-gray-500 p-3 italic"
-                >
+                <td colSpan={5} className="border text-center text-gray-500 p-3 italic">
                   Tidak ada data pasien yang cocok.
                 </td>
               </tr>
