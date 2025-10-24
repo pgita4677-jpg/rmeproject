@@ -9,6 +9,8 @@ interface ResepItem {
 }
 
 export default function EditAnamnesaPage() {
+
+  
   const router = useRouter();
   const searchParams = useSearchParams();
   const id = searchParams.get("id");
