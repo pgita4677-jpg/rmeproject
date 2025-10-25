@@ -1,9 +1,9 @@
 import mysql from "mysql2/promise";
 import bcrypt from "bcryptjs";
 
-const DB_URL = process.env.DATABASE_URL;
+const DB_URL = process.env.DATABASE_URL || "";
 
-export async function findUser(username, password) {
+export async function findUser(username: string, password: string) {
   try {
     const connection = await mysql.createConnection(DB_URL);
 
@@ -12,12 +12,15 @@ export async function findUser(username, password) {
       [username]
     );
 
+    console.log("🟢 Query result:", rows); // Tambahan log
     await connection.end();
 
-    if (rows.length === 0) return null;
+    if ((rows as any[]).length === 0) return null;
 
-    const user = rows[0];
+    const user: any = (rows as any[])[0];
     const match = await bcrypt.compare(password, user.password);
+
+    console.log("🔍 Password match:", match); // Tambahan log
 
     if (!match) return null;
 
