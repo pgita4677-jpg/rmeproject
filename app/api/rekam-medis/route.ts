@@ -10,7 +10,6 @@ export async function GET() {
       SELECT 
         p.no_rm,
         p.nama,
-        p.status,
         (
           SELECT a.keluhan
           FROM anamnesa a
@@ -35,7 +34,11 @@ export async function GET() {
   } catch (err: any) {
     console.error("❌ Error GET /rekam-medis:", err);
     return NextResponse.json(
-      { success: false, message: "Gagal mengambil data rekam medis", error: err.message },
+      { 
+        success: false, 
+        message: "Gagal mengambil data rekam medis", 
+        error: err.message 
+      },
       { status: 500 }
     );
   }

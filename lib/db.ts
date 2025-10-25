@@ -1,6 +1,7 @@
 import mysql from "mysql2/promise";
 import bcrypt from "bcryptjs";
 
+// 🔹 Fungsi untuk mencari user (login)
 export async function findUser(username: string, password: string) {
   try {
     const connection = await mysql.createConnection({
@@ -32,5 +33,24 @@ export async function findUser(username: string, password: string) {
   } catch (error) {
     console.error("findUser error:", error);
     return null;
+  }
+}
+
+// 🔹 Fungsi tambahan untuk koneksi database umum (dipakai di API lain)
+export async function connectDB() {
+  try {
+    const connection = await mysql.createConnection({
+      host: process.env.MYSQL_HOST,
+      user: process.env.MYSQL_USER,
+      password: process.env.MYSQL_PASSWORD,
+      database: process.env.MYSQL_DATABASE,
+      port: Number(process.env.MYSQL_PORT) || 3306,
+    });
+
+    console.log("✅ MySQL connected (connectDB)");
+    return connection;
+  } catch (error) {
+    console.error("❌ MySQL connection failed (connectDB):", error);
+    throw error;
   }
 }
