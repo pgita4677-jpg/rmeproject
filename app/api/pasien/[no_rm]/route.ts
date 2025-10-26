@@ -1,9 +1,6 @@
 import { NextResponse } from "next/server";
 import mysql from "mysql2/promise";
 
-// ==========================================================
-// 🔹 Konfigurasi koneksi database utama
-// ==========================================================
 const dbConfig = {
   host: "127.0.0.1",
   user: "root",
@@ -17,15 +14,10 @@ const dbConfig = {
 // ==========================================================
 // 🔹 GET: Ambil data pasien berdasarkan no_rm
 // ==========================================================
-export async function GET(
-  req: Request,
-  context: { params: Promise<{ no_rm: string }> }
-) {
-  // ✅ Next.js v15 perlu di-await
-  const { no_rm } = await context.params;
+export async function GET(req: Request, { params }: { params: { no_rm: string } }) {
+  const { no_rm } = params;
   console.log("📋 PARAMS DITERIMA:", no_rm);
 
-  // 🧩 Jika no_rm kosong → langsung beri respon jelas
   if (!no_rm || no_rm === "undefined" || no_rm.trim() === "") {
     return NextResponse.json(
       { success: false, message: "⚠️ no_rm tidak dikirim dari client" },
@@ -56,11 +48,7 @@ export async function GET(
   } catch (error: any) {
     console.error("🔥 Error ambil data pasien:", error.message);
     return NextResponse.json(
-      {
-        success: false,
-        message: "Gagal mengambil data pasien",
-        error: error.message,
-      },
+      { success: false, message: "Gagal mengambil data pasien", error: error.message },
       { status: 500 }
     );
   }
@@ -69,11 +57,8 @@ export async function GET(
 // ==========================================================
 // 🔹 PUT: Update data pasien berdasarkan no_rm
 // ==========================================================
-export async function PUT(
-  req: Request,
-  context: { params: Promise<{ no_rm: string }> }
-) {
-  const { no_rm } = await context.params;
+export async function PUT(req: Request, { params }: { params: { no_rm: string } }) {
+  const { no_rm } = params;
   console.log("✏️ PARAMS UPDATE:", no_rm);
 
   if (!no_rm || no_rm === "undefined" || no_rm.trim() === "") {
@@ -110,11 +95,7 @@ export async function PUT(
   } catch (error: any) {
     console.error("🔥 Error update pasien:", error.message);
     return NextResponse.json(
-      {
-        success: false,
-        message: "Gagal memperbarui data pasien",
-        error: error.message,
-      },
+      { success: false, message: "Gagal memperbarui data pasien", error: error.message },
       { status: 500 }
     );
   }

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import mysql from "mysql2/promise";
 
+// 🔹 Koneksi ke database
 const dbConfig = {
   host: "127.0.0.1",
   user: "root",
@@ -14,54 +15,7 @@ const dbConfig = {
 const pool = mysql.createPool(dbConfig);
 
 // =========================================================
-// GET -> ambil semua anamnesa untuk no_rm, lalu gabungkan resep
-// =========================================================
-export async function GET(req: Request) {
-  try {
-    const { searchParams } = new URL(req.url);
-    const no_rm = searchParams.get("no_rm");
-
-    if (!no_rm) {
-      return NextResponse.json(
-        { success: false, message: "⚠️ no_rm wajib dikirim pada query" },
-        { status: 400 }
-      );
-    }
-
-    // ambil anamnesa
-    const [anamnesaRows]: any = await pool.query(
-      `SELECT * FROM anamnesa WHERE no_rm = ? ORDER BY created_at DESC`,
-      [no_rm]
-    );
-
-    // ambil resep untuk pasien ini
-    const [resepRows]: any = await pool.query(
-      `SELECT * FROM resep WHERE no_rm = ? ORDER BY tanggal DESC`,
-      [no_rm]
-    );
-
-    // gabungkan resep ke masing-masing anamnesa
-    const dataGabung = anamnesaRows.map((a: any) => ({
-      ...a,
-      resep: resepRows.filter((r: any) => r.anamnesa_id === a.id) || [],
-    }));
-
-    return NextResponse.json({ success: true, data: dataGabung });
-  } catch (error: any) {
-    console.error("🔥 Error GET /api/anamnesa:", error);
-    return NextResponse.json(
-      {
-        success: false,
-        message: "Gagal ambil data anamnesa",
-        error: error.message,
-      },
-      { status: 500 }
-    );
-  }
-}
-
-// =========================================================
-// POST -> simpan anamnesa + resep (jika ada)
+// 🔹 POST -> simpan anamnesa + resep
 // =========================================================
 export async function POST(req: Request) {
   try {
@@ -75,7 +29,7 @@ export async function POST(req: Request) {
       );
     }
 
-    // simpan ke tabel anamnesa
+    // 🔸 Simpan anamnesa
     const [result]: any = await pool.query(
       `INSERT INTO anamnesa (no_rm, keluhan, riwayat, tensi, hasil_lab, created_at)
        VALUES (?, ?, ?, ?, ?, NOW())`,
@@ -84,23 +38,33 @@ export async function POST(req: Request) {
 
     const anamnesa_id = result.insertId;
 
-    // simpan ke tabel resep jika ada datanya
+    // 🔸 Simpan resep (jika ada)
     if (Array.isArray(resep) && resep.length > 0) {
       for (const r of resep) {
-        if (r.nama_obat && r.dosis && (r.pemakaian || r.aturan)) {
+        if (r.nama_obat && r.dosis && r.aturan) {
           await pool.query(
             `INSERT INTO resep (no_rm, anamnesa_id, nama_obat, dosis, aturan, tanggal)
              VALUES (?, ?, ?, ?, ?, NOW())`,
-            [no_rm, anamnesa_id, r.nama_obat, r.dosis, r.pemakaian || r.aturan]
+            [no_rm, anamnesa_id, r.nama_obat, r.dosis, r.aturan]
           );
         }
       }
     }
 
+    // 🔸 Kembalikan JSON valid ke frontend
     return NextResponse.json({
       success: true,
       message: "✅ Data anamnesa dan resep berhasil disimpan",
-      insertId: anamnesa_id,
+      data: {
+        id: anamnesa_id,
+        no_rm,
+        keluhan,
+        riwayat,
+        tensi,
+        hasil_lab,
+        created_at: new Date().toISOString(),
+        resep: resep || [],
+      },
     });
   } catch (error: any) {
     console.error("🔥 Error POST /api/anamnesa:", error);
