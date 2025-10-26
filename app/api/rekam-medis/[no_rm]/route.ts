@@ -21,6 +21,7 @@ export async function GET(req, { params }) {
       `SELECT * FROM pasien WHERE no_rm = ? LIMIT 1`,
       [no_rm]
     );
+
     if (pasienRows.length === 0) {
       return NextResponse.json(
         { success: false, message: "Data pasien tidak ditemukan" },
@@ -30,13 +31,13 @@ export async function GET(req, { params }) {
 
     const pasien = pasienRows[0];
 
-    // 2️⃣ Ambil anamnesa terakhir
+    // 2️⃣ Ambil semua anamnesa pasien
     const [anamnesaRows]: any = await pool.query(
-      `SELECT * FROM anamnesa WHERE no_rm = ? ORDER BY created_at DESC LIMIT 1`,
+      `SELECT * FROM anamnesa WHERE no_rm = ? ORDER BY created_at DESC`,
       [no_rm]
     );
 
-    // 3️⃣ Ambil resep terkait anamnesa terakhir
+    // 3️⃣ Ambil resep terkait pasien
     const [resepRows]: any = await pool.query(
       `SELECT * FROM resep WHERE no_rm = ? ORDER BY tanggal DESC`,
       [no_rm]
@@ -46,7 +47,7 @@ export async function GET(req, { params }) {
       success: true,
       data: {
         pasien,
-        anamnesa: anamnesaRows[0] || null,
+        anamnesa: anamnesaRows || [],
         resep: resepRows || [],
       },
     });

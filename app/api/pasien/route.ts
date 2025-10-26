@@ -1,16 +1,20 @@
 import { NextResponse } from "next/server";
 import mysql from "mysql2/promise";
 
-// 🔧 Koneksi ke database
+// ✅ Gunakan koneksi pool ke Railway (bukan localhost)
 const pool = mysql.createPool({
-  host: "127.0.0.1",
-  user: "root",
-  password: "",
-  database: "rme-system",
-  port: 3306,
+  host: process.env.MYSQL_HOST,
+  user: process.env.MYSQL_USER,
+  password: process.env.MYSQL_PASSWORD,
+  database: process.env.MYSQL_DATABASE,
+  port: Number(process.env.MYSQL_PORT) || 3306,
+  ssl: { rejectUnauthorized: true }, // wajib untuk Railway
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0,
 });
 
-export async function POST(req: Request) {
+export async function POST(req) {
   try {
     const body = await req.json();
     const {
@@ -33,14 +37,14 @@ export async function POST(req: Request) {
     }
 
     // 🔹 Simpan data pasien baru ke tabel `pasien`
-    const [result]: any = await pool.query(
+    const [result] = await pool.query(
       `INSERT INTO pasien 
         (no_rm, nama, tanggal_lahir, usia, jenis_kelamin, no_hp, alamat, nik, status) 
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'Baru')`,
       [no_rm, nama, tanggal_lahir, usia, jenis_kelamin, no_hp, alamat, nik]
     );
 
-    // 🔹 Catat juga ke `rekam_medis`
+    // 🔹 Catat juga ke tabel `rekam_medis`
     await pool.query(
       `INSERT INTO rekam_medis (no_rm, nama, status, tanggal_terakhir)
        VALUES (?, ?, 'Baru', NOW())`,
@@ -53,8 +57,8 @@ export async function POST(req: Request) {
       no_rm,
       insertedId: result.insertId,
     });
-  } catch (err: any) {
-    console.error("❌ Gagal simpan pasien:", err.message);
+  } catch (err) {
+    console.error("❌ Gagal simpan pasien:", err);
     return NextResponse.json(
       {
         success: false,

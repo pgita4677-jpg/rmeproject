@@ -14,8 +14,8 @@ const dbConfig = {
 // ==========================================================
 // 🔹 GET: Ambil data pasien berdasarkan no_rm
 // ==========================================================
-export async function GET(req: Request, { params }: { params: { no_rm: string } }) {
-  const { no_rm } = params;
+export async function GET(req: Request, context: { params: Promise<{ no_rm: string }> }) {
+  const { no_rm } = await context.params; // ✅ perhatikan: harus di-await
   console.log("📋 PARAMS DITERIMA:", no_rm);
 
   if (!no_rm || no_rm === "undefined" || no_rm.trim() === "") {
@@ -27,10 +27,7 @@ export async function GET(req: Request, { params }: { params: { no_rm: string } 
 
   try {
     const db = await mysql.createPool(dbConfig);
-    const [rows]: any = await db.query(
-      "SELECT * FROM pasien WHERE no_rm = ?",
-      [no_rm]
-    );
+    const [rows]: any = await db.query("SELECT * FROM pasien WHERE no_rm = ?", [no_rm]);
 
     console.log("📊 HASIL QUERY PASIEN:", rows);
 
@@ -57,8 +54,8 @@ export async function GET(req: Request, { params }: { params: { no_rm: string } 
 // ==========================================================
 // 🔹 PUT: Update data pasien berdasarkan no_rm
 // ==========================================================
-export async function PUT(req: Request, { params }: { params: { no_rm: string } }) {
-  const { no_rm } = params;
+export async function PUT(req: Request, context: { params: Promise<{ no_rm: string }> }) {
+  const { no_rm } = await context.params; // ✅ fix utama: tunggu params
   console.log("✏️ PARAMS UPDATE:", no_rm);
 
   if (!no_rm || no_rm === "undefined" || no_rm.trim() === "") {
