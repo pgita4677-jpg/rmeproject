@@ -5,19 +5,19 @@ import bcrypt from "bcryptjs";
 export async function findUser(username: string, password: string) {
   try {
     const connection = await mysql.createConnection({
-      host: process.env.MYSQL_HOST,
-      user: process.env.MYSQL_USER,
-      password: process.env.MYSQL_PASSWORD,
-      database: process.env.MYSQL_DATABASE,
-      port: Number(process.env.MYSQL_PORT) || 3306,
+      host: process.env.MYSQL_HOST || "nozomi.proxy.rlwy.net",
+      user: process.env.MYSQL_USER || "root",
+      password: process.env.MYSQL_PASSWORD || "NNStZTjxpLyfuSidoiIWdRRabuCTDEQS",
+      database: process.env.MYSQL_DATABASE || "railway",
+      port: Number(process.env.MYSQL_PORT) || 55908,
     });
 
+    console.log("🟢 Query user from:", process.env.MYSQL_HOST);
     const [rows] = await connection.execute(
       "SELECT * FROM users WHERE username = ?",
       [username]
     );
 
-    console.log("🟢 Query result:", rows);
     await connection.end();
 
     if ((rows as any[]).length === 0) return null;
@@ -40,11 +40,11 @@ export async function findUser(username: string, password: string) {
 export async function connectDB() {
   try {
     const connection = await mysql.createConnection({
-      host: process.env.MYSQL_HOST,
-      user: process.env.MYSQL_USER,
-      password: process.env.MYSQL_PASSWORD,
-      database: process.env.MYSQL_DATABASE,
-      port: Number(process.env.MYSQL_PORT) || 3306,
+      host: process.env.MYSQL_HOST || "nozomi.proxy.rlwy.net",
+      user: process.env.MYSQL_USER || "root",
+      password: process.env.MYSQL_PASSWORD || "NNStZTjxpLyfuSidoiIWdRRabuCTDEQS",
+      database: process.env.MYSQL_DATABASE || "railway",
+      port: Number(process.env.MYSQL_PORT) || 55908,
     });
 
     console.log("✅ MySQL connected (connectDB)");

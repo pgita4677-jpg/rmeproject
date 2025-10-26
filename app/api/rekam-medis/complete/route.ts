@@ -2,10 +2,11 @@ import { NextResponse } from "next/server";
 import mysql from "mysql2/promise";
 
 const dbConfig = {
-  host: "127.0.0.1",
-  user: "root",
-  password: "",
-  database: "rme-system",
+  host: process.env.MYSQL_HOST || "nozomi.proxy.rlwy.net",
+  user: process.env.MYSQL_USER || "root",
+  password: process.env.MYSQL_PASSWORD || "NNStZTjxpLyfuSidoiIWdRRabuCTDEQS",
+  database: process.env.MYSQL_DATABASE || "railway",
+  port: Number(process.env.MYSQL_PORT) || 55908,
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
@@ -16,7 +17,6 @@ const pool = mysql.createPool(dbConfig);
 export async function POST(req: Request) {
   const body = await req.json();
 
-  // body: { pasien: {...}, anamnesa: {...}, resep: [ {...}, ... ] }
   const pasienBody = body.pasien || {};
   const anamnesaBody = body.anamnesa || {};
   const resepArray = Array.isArray(body.resep) ? body.resep : [];
@@ -27,24 +27,24 @@ export async function POST(req: Request) {
     connection = await pool.getConnection();
     await connection.beginTransaction();
 
-    // 1) determine no_rm: use provided if present and not empty, else generate new unique
+    // 1️⃣ generate no_rm unik kalau belum ada
     let no_rm = (pasienBody.no_rm || "").trim();
     if (!no_rm) {
-      // generate RM based on timestamp + random (ensure reasonably unique)
       no_rm = "RM" + Date.now();
     }
 
-    // 2) check if pasien with no_rm already exists
+    // 2️⃣ cek apakah pasien sudah ada
     const [checkRows]: any = await connection.query(
       "SELECT id FROM pasien WHERE no_rm = ?",
       [no_rm]
     );
 
     if ((checkRows || []).length === 0) {
-      // insert pasien
-      const sqlPasien = `INSERT INTO pasien (no_rm, nama, tanggal_lahir, usia, jenis_kelamin, alamat, no_hp, nik)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
-      const [pasienResult]: any = await connection.query(sqlPasien, [
+      const sqlPasien = `
+        INSERT INTO pasien (no_rm, nama, tanggal_lahir, usia, jenis_kelamin, alamat, no_hp, nik)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `;
+      await connection.query(sqlPasien, [
         no_rm,
         pasienBody.nama || null,
         pasienBody.tanggal_lahir || null,
@@ -54,19 +54,9 @@ export async function POST(req: Request) {
         pasienBody.no_hp || null,
         pasienBody.nik || null,
       ]);
-      // optional: pasienInsertId = pasienResult.insertId;
-    } else {
-      // optional: update pasien if you want - currently we leave existing data as-is
-      // if you prefer to update, uncomment below:
-      /*
-      await connection.query(
-        `UPDATE pasien SET nama=?, tanggal_lahir=?, usia=?, jenis_kelamin=?, alamat=?, no_hp=?, nik=? WHERE no_rm=?`,
-        [pasienBody.nama, pasienBody.tanggal_lahir, pasienBody.usia, pasienBody.jenis_kelamin, pasienBody.alamat, pasienBody.no_hp, pasienBody.nik, no_rm]
-      );
-      */
     }
 
-    // 3) insert anamnesa
+    // 3️⃣ insert anamnesa
     const [anamnesaResult]: any = await connection.query(
       `INSERT INTO anamnesa (no_rm, keluhan, riwayat, tensi, hasil_lab, created_at)
        VALUES (?, ?, ?, ?, ?, NOW())`,
@@ -81,9 +71,8 @@ export async function POST(req: Request) {
 
     const anamnesa_id = anamnesaResult.insertId;
 
-    // 4) insert resep rows (if ada)
+    // 4️⃣ insert resep jika ada
     for (const r of resepArray) {
-      // only insert when nama_obat provided
       if (!r.nama_obat || !r.nama_obat.toString().trim()) continue;
 
       await connection.query(
@@ -92,7 +81,7 @@ export async function POST(req: Request) {
         [
           no_rm,
           pasienBody.nama || null,
-          null, // diagnosa kita set null per request
+          null, // diagnosa kosong untuk sekarang
           anamnesa_id,
           r.nama_obat || null,
           r.dosis || null,
@@ -101,9 +90,11 @@ export async function POST(req: Request) {
       );
     }
 
-    // commit
+    // 5️⃣ commit
     await connection.commit();
     connection.release();
+
+    console.log("✅ Rekam medis tersimpan di Railway:", no_rm);
 
     return NextResponse.json({
       success: true,
