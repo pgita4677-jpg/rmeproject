@@ -1,12 +1,13 @@
 import { NextResponse } from "next/server";
 import mysql from "mysql2/promise";
 
-// 🔹 Koneksi ke database
+// 🔹 koneksi database ke RAILWAY
 const pool = mysql.createPool({
-  host: "localhost",
-  user: "root",
-  password: "",
-  database: "rme-system",
+  host: process.env.MYSQL_HOST || "nozomi.proxy.rlwy.net",
+  user: process.env.MYSQL_USER || "root",
+  password: process.env.MYSQL_PASSWORD || "NNStZTjxpLyfuSidoiIWdRRabuCTDEQS",
+  database: process.env.MYSQL_DATABASE || "railway",
+  port: Number(process.env.MYSQL_PORT) || 55908,
 });
 
 export async function GET(req: Request) {
@@ -66,7 +67,7 @@ export async function GET(req: Request) {
         ? Object.entries(keluhanCount).sort((a, b) => b[1] - a[1])[0][0]
         : "-";
 
-    // 🔹 Hitung obat tersering dari tabel resep (jika ada)
+    // 🔹 Hitung obat tersering
     let obatTersering = "-";
     try {
       let obatQuery = `
