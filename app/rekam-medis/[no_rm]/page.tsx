@@ -26,7 +26,7 @@ interface Anamnesa {
   riwayat: string;
   tensi: string;
   hasil_lab: string;
-  created_at: string;
+  created_at?: string;
   resep?: Resep[];
 }
 
@@ -40,7 +40,7 @@ export default function RekamMedisPage() {
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
 
-  // Modal kunjungan baru
+  // Modal kunjungan
   const [showModal, setShowModal] = useState(false);
   const [newKunjungan, setNewKunjungan] = useState({
     keluhan: "",
@@ -70,7 +70,7 @@ export default function RekamMedisPage() {
   const handleRemoveResep = (index: number) =>
     setResepList(resepList.filter((_, i) => i !== index));
 
-  // ✅ Ambil data pasien, anamnesa, dan resep dari API
+  // Ambil data pasien & anamnesa
   useEffect(() => {
     if (!no_rm) return;
 
@@ -85,7 +85,7 @@ export default function RekamMedisPage() {
         setPasien(data.data.pasien);
         setFormData(data.data.pasien);
 
-        // Gabungkan anamnesa dan resep per kunjungan
+        // Gabungkan anamnesa dan resep
         const anamnesa = data.data.anamnesa || [];
         const resep = data.data.resep || [];
 
@@ -105,6 +105,7 @@ export default function RekamMedisPage() {
     fetchData();
   }, [no_rm]);
 
+  // Simpan edit pasien
   const handleSavePasien = async () => {
     if (!formData) return;
     try {
@@ -122,6 +123,7 @@ export default function RekamMedisPage() {
     }
   };
 
+  // Hapus kunjungan
   const handleDeleteKunjungan = async (id: number) => {
     if (!confirm("Yakin ingin menghapus kunjungan ini?")) return;
     try {
@@ -134,6 +136,7 @@ export default function RekamMedisPage() {
     }
   };
 
+  // Tambah kunjungan baru
   const handleTambahKunjungan = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -148,16 +151,22 @@ export default function RekamMedisPage() {
           ),
         }),
       });
+
       const data = await res.json();
       if (!res.ok) throw new Error(data.message);
-      setAnamnesaList([data.data, ...anamnesaList]);
+
+      // langsung refresh
       setShowModal(false);
+      setNewKunjungan({ keluhan: "", riwayat: "", tensi: "", hasil_lab: "" });
+      setResepList([{ nama_obat: "", dosis: "", aturan: "" }]);
       alert("✅ Kunjungan berhasil ditambahkan!");
+      router.refresh();
     } catch (err: any) {
       alert("❌ Gagal menambah kunjungan: " + err.message);
     }
   };
 
+  // Loading
   if (loading)
     return <p className="text-center mt-10 text-gray-500">⏳ Memuat data...</p>;
 
@@ -279,8 +288,16 @@ export default function RekamMedisPage() {
               </div>
 
               <p className="text-sm text-gray-500 mb-2">
-                {new Date(a.created_at).toLocaleDateString("id-ID")}
+                🕓{" "}
+                {a.created_at
+                  ? new Date(a.created_at).toLocaleDateString("id-ID", {
+                      day: "2-digit",
+                      month: "long",
+                      year: "numeric",
+                    })
+                  : "Tanggal tidak tersedia"}
               </p>
+
               <p><b>Keluhan:</b> {a.keluhan}</p>
               <p><b>Riwayat:</b> {a.riwayat}</p>
               <p><b>Tensi:</b> {a.tensi}</p>
@@ -302,6 +319,148 @@ export default function RekamMedisPage() {
           ))
         )}
       </div>
+
+      {/* Modal Tambah Kunjungan */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-xl w-full max-w-lg shadow-lg relative">
+            <button
+              onClick={() => setShowModal(false)}
+              className="absolute top-2 right-3 text-gray-500 text-xl"
+            >
+              ✖
+            </button>
+            <h2 className="text-xl font-bold mb-4 text-center">
+              🩺 Tambah Kunjungan Baru
+            </h2>
+            <form onSubmit={handleTambahKunjungan} className="space-y-3">
+              <div>
+                <label className="block font-semibold">Keluhan</label>
+                <textarea
+                  className="border rounded w-full p-2"
+                  value={newKunjungan.keluhan}
+                  onChange={(e) =>
+                    setNewKunjungan({
+                      ...newKunjungan,
+                      keluhan: e.target.value,
+                    })
+                  }
+                  required
+                />
+              </div>
+              <div>
+                <label className="block font-semibold">Riwayat</label>
+                <textarea
+                  className="border rounded w-full p-2"
+                  value={newKunjungan.riwayat}
+                  onChange={(e) =>
+                    setNewKunjungan({
+                      ...newKunjungan,
+                      riwayat: e.target.value,
+                    })
+                  }
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold">Tensi</label>
+                  <input
+                    type="text"
+                    className="border rounded w-full p-2"
+                    value={newKunjungan.tensi}
+                    onChange={(e) =>
+                      setNewKunjungan({
+                        ...newKunjungan,
+                        tensi: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold">Hasil Lab</label>
+                  <input
+                    type="text"
+                    className="border rounded w-full p-2"
+                    value={newKunjungan.hasil_lab}
+                    onChange={(e) =>
+                      setNewKunjungan({
+                        ...newKunjungan,
+                        hasil_lab: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+              </div>
+
+              {/* Resep Obat */}
+              <div>
+                <label className="block font-semibold">Resep Obat</label>
+                {resepList.map((r, i) => (
+                  <div key={i} className="flex gap-2 mb-2">
+                    <input
+                      type="text"
+                      placeholder="Nama Obat"
+                      className="border rounded p-1 flex-1"
+                      value={r.nama_obat}
+                      onChange={(e) =>
+                        handleChangeResep(i, "nama_obat", e.target.value)
+                      }
+                    />
+                    <input
+                      type="text"
+                      placeholder="Dosis"
+                      className="border rounded p-1 flex-1"
+                      value={r.dosis}
+                      onChange={(e) =>
+                        handleChangeResep(i, "dosis", e.target.value)
+                      }
+                    />
+                    <input
+                      type="text"
+                      placeholder="Aturan"
+                      className="border rounded p-1 flex-1"
+                      value={r.aturan}
+                      onChange={(e) =>
+                        handleChangeResep(i, "aturan", e.target.value)
+                      }
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveResep(i)}
+                      className="text-red-500"
+                    >
+                      ❌
+                    </button>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={handleAddResep}
+                  className="text-blue-600 text-sm mt-1"
+                >
+                  + Tambah Resep
+                </button>
+              </div>
+
+              <div className="flex justify-end gap-2 mt-4">
+                <button
+                  type="button"
+                  onClick={() => setShowModal(false)}
+                  className="bg-gray-400 text-white px-3 py-1 rounded"
+                >
+                  ❌ Batal
+                </button>
+                <button
+                  type="submit"
+                  className="bg-green-600 text-white px-3 py-1 rounded"
+                >
+                  💾 Simpan
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -7,11 +7,14 @@ const dbConfig = {
   password: process.env.MYSQL_PASSWORD || "NNStZTjxpLyfuSidoiIWdRRabuCTDEQS",
   database: process.env.MYSQL_DATABASE || "railway",
   port: Number(process.env.MYSQL_PORT) || 55908,
+  ssl: { rejectUnauthorized: false },
 };
 
 const pool = mysql.createPool(dbConfig);
 
-// 🔹 Ambil semua rekam medis pasien
+// ============================================================
+// 🔹 GET: Ambil semua rekam medis pasien (lengkap & aman)
+// ============================================================
 export async function GET() {
   try {
     const [rows]: any = await pool.query(`
@@ -37,9 +40,24 @@ export async function GET() {
       ORDER BY tanggal_terakhir DESC
     `);
 
+    // 🔸 Format tanggal biar rapi & aman kalau null
+    const dataFix = rows.map((item: any) => ({
+      ...item,
+      keluhan_terakhir: item.keluhan_terakhir || "-",
+      tanggal_terakhir: item.tanggal_terakhir
+        ? new Date(item.tanggal_terakhir).toLocaleDateString("id-ID", {
+            day: "2-digit",
+            month: "long",
+            year: "numeric",
+          })
+        : "-",
+      total_kunjungan: item.total_kunjungan || 0,
+    }));
+
     return NextResponse.json({
       success: true,
-      data: rows,
+      message: "✅ Data rekam medis berhasil diambil",
+      data: dataFix,
     });
   } catch (error: any) {
     console.error("🔥 Error GET /api/rekam-medis:", error);

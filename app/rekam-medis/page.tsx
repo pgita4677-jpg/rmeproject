@@ -61,7 +61,7 @@ export default function RekamMedisPage() {
       body: filteredList.map((r) => [
         r.no_rm,
         r.nama,
-        r.keluhan || "-",
+        r.keluhan_terakhir || "-",
         r.tanggal_terakhir
           ? new Date(r.tanggal_terakhir).toLocaleDateString("id-ID", {
               day: "2-digit",
@@ -89,9 +89,11 @@ export default function RekamMedisPage() {
     doc.save("Laporan_Rekam_Medis.pdf");
   };
 
+  // 🔹 Kondisi loading / error
   if (loading) return <p className="text-center py-10">Memuat data...</p>;
   if (error) return <p className="text-center text-red-600 py-10">{error}</p>;
 
+  // ✅ TAMPILAN UTAMA
   return (
     <div className="max-w-5xl mx-auto p-6 space-y-6">
       <div className="flex justify-between items-center flex-wrap gap-3">
@@ -114,8 +116,9 @@ export default function RekamMedisPage() {
         </div>
       </div>
 
+      {/* ✅ Tabel Data */}
       <div className="bg-white shadow-md rounded-lg overflow-hidden mt-4">
-        <table className="w-full border text-sm">
+        <table className="w-full border text-sm border-collapse">
           <thead className="bg-gray-100">
             <tr>
               <th className="border p-2">No RM</th>
@@ -125,13 +128,18 @@ export default function RekamMedisPage() {
               <th className="border p-2">Aksi</th>
             </tr>
           </thead>
+
           <tbody>
             {filteredList.length > 0 ? (
               filteredList.map((r) => (
                 <tr key={r.no_rm}>
                   <td className="border p-2">{r.no_rm}</td>
                   <td className="border p-2">{r.nama}</td>
-                  <td className="border p-2">{r.keluhan || "-"}</td>
+                  <td className="border p-2">
+                    {r.keluhan_terakhir && r.keluhan_terakhir.trim() !== ""
+                      ? r.keluhan_terakhir
+                      : "-"}
+                  </td>
                   <td className="border p-2">
                     {r.tanggal_terakhir
                       ? new Date(r.tanggal_terakhir).toLocaleDateString("id-ID", {
@@ -153,7 +161,10 @@ export default function RekamMedisPage() {
               ))
             ) : (
               <tr>
-                <td colSpan={5} className="border text-center text-gray-500 p-3 italic">
+                <td
+                  colSpan={5}
+                  className="border text-center text-gray-500 p-3 italic"
+                >
                   Tidak ada data pasien yang cocok.
                 </td>
               </tr>
@@ -168,3 +179,4 @@ export default function RekamMedisPage() {
     </div>
   );
 }
+
