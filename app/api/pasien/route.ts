@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import mysql from "mysql2/promise";
+import mysql, { OkPacket } from "mysql2/promise";
 
-// ✅ Gunakan koneksi pool ke Railway (bukan localhost)
+// ✅ Gunakan koneksi pool ke Railway
 const pool = mysql.createPool({
   host: process.env.MYSQL_HOST,
   user: process.env.MYSQL_USER,
@@ -14,7 +14,10 @@ const pool = mysql.createPool({
   queueLimit: 0,
 });
 
-export async function POST(req) {
+// ============================================================
+// 🔹 POST: Tambah pasien baru
+// ============================================================
+export async function POST(req: Request) {
   try {
     const body = await req.json();
     const {
@@ -28,7 +31,7 @@ export async function POST(req) {
       nik,
     } = body;
 
-    // 🔹 Validasi data wajib
+    // 🔸 Validasi data
     if (!no_rm || !nama) {
       return NextResponse.json(
         { success: false, message: "Nomor RM dan Nama wajib diisi" },
@@ -37,7 +40,7 @@ export async function POST(req) {
     }
 
     // 🔹 Simpan data pasien baru ke tabel `pasien`
-    const [result] = await pool.query(
+    const [result] = await pool.query<OkPacket>(
       `INSERT INTO pasien 
         (no_rm, nama, tanggal_lahir, usia, jenis_kelamin, no_hp, alamat, nik, status) 
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'Baru')`,
@@ -45,7 +48,7 @@ export async function POST(req) {
     );
 
     // 🔹 Catat juga ke tabel `rekam_medis`
-    await pool.query(
+    await pool.query<OkPacket>(
       `INSERT INTO rekam_medis (no_rm, nama, status, tanggal_terakhir)
        VALUES (?, ?, 'Baru', NOW())`,
       [no_rm, nama]
@@ -57,7 +60,7 @@ export async function POST(req) {
       no_rm,
       insertedId: result.insertId,
     });
-  } catch (err) {
+  } catch (err: any) {
     console.error("❌ Gagal simpan pasien:", err);
     return NextResponse.json(
       {

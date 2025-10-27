@@ -37,24 +37,26 @@ export default function PasienSelectPage() {
     { nama_obat: "", dosis: "", aturan: "" },
   ]);
 
-  // 🔹 Ambil daftar pasien (single user)
+  // 🔹 Ambil daftar pasien dari API
   useEffect(() => {
     async function fetchData() {
       setLoading(true);
       try {
-        const res = await fetch("/api/pasien");
+        const res = await fetch("/api/pasien/select");
         const result = await res.json();
+
+        console.log("🔍 Hasil Fetch Pasien:", result);
 
         if (Array.isArray(result)) {
           setDataPasien(result);
         } else if (result.data && Array.isArray(result.data)) {
           setDataPasien(result.data);
         } else {
-          console.error("Format data tidak dikenali:", result);
+          console.error("⚠️ Format data tidak dikenali:", result);
           setDataPasien([]);
         }
       } catch (err) {
-        console.error("Gagal ambil data pasien:", err);
+        console.error("❌ Gagal ambil data pasien:", err);
         setDataPasien([]);
       } finally {
         setLoading(false);
@@ -63,6 +65,7 @@ export default function PasienSelectPage() {
     fetchData();
   }, []);
 
+  // 🔹 Fungsi Modal
   const handleTambahKunjungan = (pasien: Pasien) => {
     setSelectedPasien(pasien);
     setShowModal(true);
@@ -84,6 +87,7 @@ export default function PasienSelectPage() {
     setResepList(newList);
   };
 
+  // 🔹 Submit Anamnesa + Resep
   const handleSubmit = async () => {
     if (!selectedPasien) return alert("Pilih pasien terlebih dahulu!");
     if (!form.keluhan.trim() || !form.tensi.trim())
@@ -121,6 +125,7 @@ export default function PasienSelectPage() {
     }
   };
 
+  // 🔹 Filter pencarian pasien
   const filteredPasien = dataPasien.filter((p) =>
     `${p.no_rm} ${p.nama} ${p.alamat}`.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -140,6 +145,7 @@ export default function PasienSelectPage() {
         onChange={(e) => setSearchTerm(e.target.value)}
       />
 
+      {/* 🔹 Tabel daftar pasien */}
       {filteredPasien.length === 0 ? (
         <p className="text-gray-500">Pasien tidak ditemukan.</p>
       ) : (

@@ -1,60 +1,97 @@
 import { NextResponse } from "next/server";
-import mysql from "mysql2/promise";
+import mysql, { RowDataPacket } from "mysql2/promise";
 
-const dbConfig = {
-  host: process.env.MYSQL_HOST || "nozomi.proxy.rlwy.net",
-  user: process.env.MYSQL_USER || "root",
-  password: process.env.MYSQL_PASSWORD || "NNStZTjxpLyfuSidoiIWdRRabuCTDEQS",
-  database: process.env.MYSQL_DATABASE || "railway",
-  port: Number(process.env.MYSQL_PORT) || 55908,
-};
+// ✅ Gunakan pool biar koneksi stabil di Railway
+const pool = mysql.createPool({
+  host: process.env.MYSQL_HOST,
+  user: process.env.MYSQL_USER,
+  password: process.env.MYSQL_PASSWORD,
+  database: process.env.MYSQL_DATABASE,
+  port: Number(process.env.MYSQL_PORT) || 3306,
+  ssl: { rejectUnauthorized: false }, // 💖 FIX SSL ERROR UNTUK RAILWAY
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0,
+});
 
-const pool = mysql.createPool(dbConfig);
+// ============================================================
+// 🔹 GET: Ambil data pasien + anamnesa + resep berdasarkan no_rm
+// ============================================================
+export async function GET(
+  req: Request,
+  { params }: { params: { no_rm: string } }
+) {
+  const { no_rm } = params;
 
-// GET detail rekam medis berdasarkan no_rm
-export async function GET(req, { params }) {
+  if (!no_rm || no_rm === "undefined" || no_rm.trim() === "") {
+    return NextResponse.json(
+      { success: false, message: "⚠️ Parameter no_rm tidak valid" },
+      { status: 400 }
+    );
+  }
+
   try {
-    const { no_rm } = params;
+    const conn = await pool.getConnection();
+    console.log("✅ Terhubung ke database Railway!");
 
-    // 1️⃣ Ambil data pasien
-    const [pasienRows]: any = await pool.query(
-      `SELECT * FROM pasien WHERE no_rm = ? LIMIT 1`,
+    // 🔍 Ambil data pasien
+    const [pasienRows] = await conn.query<RowDataPacket[]>(
+      "SELECT * FROM pasien WHERE no_rm = ?",
       [no_rm]
     );
 
-    if (pasienRows.length === 0) {
+    if (!pasienRows || pasienRows.length === 0) {
+      conn.release();
       return NextResponse.json(
-        { success: false, message: "Data pasien tidak ditemukan" },
+        {
+          success: false,
+          message: `❌ Pasien dengan no_rm ${no_rm} tidak ditemukan`,
+        },
         { status: 404 }
       );
     }
 
     const pasien = pasienRows[0];
 
-    // 2️⃣ Ambil semua anamnesa pasien
-    const [anamnesaRows]: any = await pool.query(
-      `SELECT * FROM anamnesa WHERE no_rm = ? ORDER BY created_at DESC`,
+    // 🩺 Ambil semua anamnesa pasien
+    const [anamnesaRows] = await conn.query<RowDataPacket[]>(
+      "SELECT * FROM anamnesa WHERE no_rm = ? ORDER BY created_at DESC",
       [no_rm]
     );
 
-    // 3️⃣ Ambil resep terkait pasien
-    const [resepRows]: any = await pool.query(
-      `SELECT * FROM resep WHERE no_rm = ? ORDER BY tanggal DESC`,
-      [no_rm]
-    );
+    // 💊 Ambil semua resep yang berkaitan dengan anamnesa
+    let resepRows: RowDataPacket[] = [];
+    if (anamnesaRows.length > 0) {
+      const anamnesaIds = anamnesaRows.map((a) => a.id);
+      const [resepData] = await conn.query<RowDataPacket[]>(
+        `SELECT * FROM resep WHERE anamnesa_id IN (?)`,
+        [anamnesaIds]
+      );
+      resepRows = resepData;
+    }
 
+    conn.release();
+
+    console.log("📦 Data rekam medis berhasil diambil untuk:", no_rm);
+
+    // ✅ Format response untuk frontend
     return NextResponse.json({
       success: true,
+      message: "Data rekam medis berhasil diambil",
       data: {
         pasien,
-        anamnesa: anamnesaRows || [],
-        resep: resepRows || [],
+        anamnesa: anamnesaRows,
+        resep: resepRows,
       },
     });
   } catch (error: any) {
-    console.error("🔥 Error GET /api/rekam-medis/[no_rm]:", error);
+    console.error("❌ Error fetch rekam medis:", error);
     return NextResponse.json(
-      { success: false, message: "Gagal ambil data", error: error.message },
+      {
+        success: false,
+        message: "Gagal mengambil data rekam medis",
+        error: error.message || String(error),
+      },
       { status: 500 }
     );
   }
