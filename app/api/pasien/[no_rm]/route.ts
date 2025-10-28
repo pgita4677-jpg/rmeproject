@@ -8,34 +8,38 @@ const pool = mysql.createPool({
   password: process.env.MYSQL_PASSWORD,
   database: process.env.MYSQL_DATABASE,
   port: Number(process.env.MYSQL_PORT) || 3306,
-  ssl: { rejectUnauthorized: true },
+  ssl: { rejectUnauthorized: false }, // ✅ biar koneksi Railway lancar
 });
 
-export async function GET(req: Request, { params }: { params: { no_rm: string } }) {
+export async function PUT(req: Request, { params }: { params: { no_rm: string } }) {
   const { no_rm } = params;
 
-  console.log("🟡 GET pasien:", no_rm);
-
   try {
-    const [rows]: any = await pool.query("SELECT * FROM pasien WHERE no_rm = ?", [no_rm]);
-    console.log("📦 hasil query:", rows);
+    const body = await req.json();
+    const { nama, alamat, tanggal_lahir, jenis_kelamin, usia, no_hp, nik } = body;
 
-    if (!rows || rows.length === 0) {
+    const [result]: any = await pool.query(
+      `UPDATE pasien 
+       SET nama = ?, alamat = ?, tanggal_lahir = ?, jenis_kelamin = ?, usia = ?, no_hp = ?, nik = ?
+       WHERE no_rm = ?`,
+      [nama, alamat, tanggal_lahir, jenis_kelamin, usia, no_hp, nik, no_rm]
+    );
+
+    if (result.affectedRows === 0) {
       return NextResponse.json(
-        { success: false, message: `Pasien ${no_rm} tidak ditemukan` },
+        { success: false, message: `Pasien ${no_rm} tidak ditemukan.` },
         { status: 404 }
       );
     }
 
     return NextResponse.json({
       success: true,
-      message: "Data pasien ditemukan",
-      data: { pasien: rows[0] },
+      message: "✅ Data pasien berhasil diperbarui.",
     });
   } catch (error: any) {
-    console.error("❌ GET error:", error);
+    console.error("❌ PUT error:", error);
     return NextResponse.json(
-      { success: false, message: "Gagal mengambil data pasien", error: error.message },
+      { success: false, message: "Gagal memperbarui data pasien", error: error.message },
       { status: 500 }
     );
   }

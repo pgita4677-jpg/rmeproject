@@ -1,15 +1,20 @@
 import { NextResponse } from "next/server";
 import mysql from "mysql2/promise";
 
-// 🔧 Koneksi ke database
+// 🔧 Konfigurasi koneksi ke database Railway
 const pool = mysql.createPool({
-  host: "127.0.0.1",
-  user: "root",
-  password: "",
-  database: "rme-system",
-  port: 3306,
+  host: process.env.MYSQL_HOST || "nozomi.proxy.rlwy.net",
+  user: process.env.MYSQL_USER || "root",
+  password: process.env.MYSQL_PASSWORD || "NNStZTjxpLyfuSidoiIWdRRabuCTDEQS",
+  database: process.env.MYSQL_DATABASE || "railway",
+  port: Number(process.env.MYSQL_PORT) || 55908,
+  ssl: { rejectUnauthorized: false },
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0,
 });
 
+// ✅ Endpoint: Tambah data pasien baru
 export async function POST(req: Request) {
   try {
     const body = await req.json();
@@ -24,7 +29,7 @@ export async function POST(req: Request) {
       nik,
     } = body;
 
-    // 🔹 Validasi data wajib
+    // 🔹 Validasi wajib isi
     if (!no_rm || !nama) {
       return NextResponse.json(
         { success: false, message: "Nomor RM dan Nama wajib diisi" },
@@ -32,7 +37,20 @@ export async function POST(req: Request) {
       );
     }
 
-    // 🔹 Simpan data pasien baru ke tabel `pasien`
+    // 🔹 Cek apakah no_rm sudah ada di database
+    const [cek]: any = await pool.query(
+      "SELECT no_rm FROM pasien WHERE no_rm = ? LIMIT 1",
+      [no_rm]
+    );
+
+    if (cek.length > 0) {
+      return NextResponse.json({
+        success: false,
+        message: `Pasien dengan No. RM ${no_rm} sudah ada!`,
+      });
+    }
+
+    // 🔹 Simpan data ke tabel pasien
     const [result]: any = await pool.query(
       `INSERT INTO pasien 
         (no_rm, nama, tanggal_lahir, usia, jenis_kelamin, no_hp, alamat, nik) 
@@ -40,7 +58,7 @@ export async function POST(req: Request) {
       [no_rm, nama, tanggal_lahir, usia, jenis_kelamin, no_hp, alamat, nik]
     );
 
-    // 🔹 Setelah pasien disimpan, tambahkan juga catatan ke `rekam_medis`
+    // 🔹 Tambahkan data awal ke rekam_medis
     await pool.query(
       `INSERT INTO rekam_medis (no_rm, nama, status, tanggal_terakhir)
        VALUES (?, ?, 'Baru', NOW())`,

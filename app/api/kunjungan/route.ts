@@ -1,58 +1,83 @@
 import { NextResponse } from "next/server";
 import mysql from "mysql2/promise";
 
-// 🔹 Koneksi database
+// 🔧 Koneksi ke database Railway
 const pool = mysql.createPool({
-  host: "localhost",
-  user: "root",
-  password: "",
-  database: "rme-system", // ganti sesuai database kamu
+  host: process.env.MYSQL_HOST || "nozomi.proxy.rlwy.net",
+  user: process.env.MYSQL_USER || "root",
+  password: process.env.MYSQL_PASSWORD || "NNStZTjxpLyfuSidoiIWdRRabuCTDEQS",
+  database: process.env.MYSQL_DATABASE || "railway",
+  port: Number(process.env.MYSQL_PORT) || 55908,
+  ssl: { rejectUnauthorized: false },
 });
 
-// 🔹 Ambil data dari tabel ANAMNESA (bukan kunjungan)
+// ✅ GET /api/kunjungan?no_rm=RM2025001
 export async function GET(req: Request) {
+  const { searchParams } = new URL(req.url);
+  const no_rm = searchParams.get("no_rm");
+
+  if (!no_rm) {
+    return NextResponse.json(
+      { success: false, message: "Nomor RM wajib dikirim!" },
+      { status: 400 }
+    );
+  }
+
   try {
-    const { searchParams } = new URL(req.url);
-    const no_rm = searchParams.get("no_rm");
-
-    if (!no_rm) {
-      return NextResponse.json(
-        { success: false, message: "Parameter no_rm wajib diisi" },
-        { status: 400 }
-      );
-    }
-
-    // 🔹 Ambil semua data anamnesa berdasarkan no_rm
     const [rows]: any = await pool.query(
-      `SELECT * FROM anamnesa WHERE no_rm = ? ORDER BY created_at DESC`,
+      `
+      SELECT 
+        a.id,
+        a.no_rm,
+        a.keluhan,
+        a.riwayat,
+        a.tensi,
+        a.hasil_lab,
+        a.created_at,
+        r.nama_obat,
+        r.dosis,
+        r.aturan
+      FROM anamnesa a
+      LEFT JOIN resep r ON a.id = r.anamnesa_id
+      WHERE a.no_rm = ?
+      ORDER BY a.created_at DESC
+      `,
       [no_rm]
     );
 
-    // 🔹 Kalau data kosong
-    if (rows.length === 0) {
-      return NextResponse.json({
-        success: true,
-        message: "Belum ada data anamnesa",
-        data: [],
-      });
-    }
+    // 🔹 Gabungkan resep ke dalam setiap kunjungan
+    const grouped = rows.reduce((acc: any, row: any) => {
+      const existing = acc.find((x: any) => x.id === row.id);
+      if (existing) {
+        if (row.nama_obat) {
+          existing.resep.push({
+            nama_obat: row.nama_obat,
+            dosis: row.dosis,
+            aturan: row.aturan,
+          });
+        }
+      } else {
+        acc.push({
+          id: row.id,
+          no_rm: row.no_rm,
+          keluhan: row.keluhan,
+          riwayat: row.riwayat,
+          tensi: row.tensi,
+          hasil_lab: row.hasil_lab,
+          created_at: row.created_at,
+          resep: row.nama_obat
+            ? [{ nama_obat: row.nama_obat, dosis: row.dosis, aturan: row.aturan }]
+            : [],
+        });
+      }
+      return acc;
+    }, []);
 
-    // 🔹 Parsing kolom resep (jika berupa string JSON)
-    const data = rows.map((item: any) => ({
-      ...item,
-      resep:
-        typeof item.resep === "string"
-          ? JSON.parse(item.resep || "[]")
-          : Array.isArray(item.resep)
-          ? item.resep
-          : [],
-    }));
-
-    return NextResponse.json({ success: true, data });
-  } catch (error: any) {
-    console.error("❌ Error ambil data anamnesa:", error);
+    return NextResponse.json({ success: true, data: grouped });
+  } catch (err: any) {
+    console.error("❌ Gagal ambil data kunjungan:", err);
     return NextResponse.json(
-      { success: false, message: "Terjadi kesalahan server", error: error.message },
+      { success: false, message: "Gagal mengambil data kunjungan", error: err.message },
       { status: 500 }
     );
   }

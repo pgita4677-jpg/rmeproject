@@ -1,13 +1,14 @@
 import { NextResponse } from "next/server";
 import mysql from "mysql2/promise";
 
-// 🔹 koneksi database ke RAILWAY
+// 🔧 Koneksi ke database Railway
 const pool = mysql.createPool({
   host: process.env.MYSQL_HOST || "nozomi.proxy.rlwy.net",
   user: process.env.MYSQL_USER || "root",
   password: process.env.MYSQL_PASSWORD || "NNStZTjxpLyfuSidoiIWdRRabuCTDEQS",
   database: process.env.MYSQL_DATABASE || "railway",
   port: Number(process.env.MYSQL_PORT) || 55908,
+  ssl: { rejectUnauthorized: false },
 });
 
 export async function GET(req: Request) {
@@ -41,7 +42,6 @@ export async function GET(req: Request) {
     `;
 
     const params: any[] = [];
-
     if (dari && sampai) {
       query += " AND DATE(a.created_at) BETWEEN ? AND ?";
       params.push(dari, sampai);
@@ -51,7 +51,6 @@ export async function GET(req: Request) {
 
     const [rows]: any = await pool.query(query, params);
 
-    // 🧮 Hitung statistik
     const totalKunjungan = rows.length;
     const totalPasien = new Set(rows.map((r: any) => r.no_rm)).size;
 
@@ -67,7 +66,7 @@ export async function GET(req: Request) {
         ? Object.entries(keluhanCount).sort((a, b) => b[1] - a[1])[0][0]
         : "-";
 
-    // 🔹 Hitung obat tersering
+    // 🔹 Hitung obat tersering dari tabel resep
     let obatTersering = "-";
     try {
       let obatQuery = `
@@ -92,7 +91,6 @@ export async function GET(req: Request) {
     const totalPasienBaru = rows.filter((r: any) => r.status_pasien === "Pasien Baru").length;
     const totalKunjunganUlang = rows.filter((r: any) => r.status_pasien === "Kunjungan Ulang").length;
 
-    // 🔹 Buat statistik ringkasan
     const statistik = {
       totalPasien,
       totalKunjungan,

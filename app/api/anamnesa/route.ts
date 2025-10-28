@@ -38,9 +38,23 @@ export async function POST(req: Request) {
       }
     }
 
+    // 🌟 3️⃣ Tambahan: update status pasien di tabel rekam_medis
+    try {
+      await pool.query(
+        `INSERT INTO rekam_medis (no_rm, status, tanggal_terakhir)
+         VALUES (?, 'Kunjungan Ulang', NOW())
+         ON DUPLICATE KEY UPDATE 
+           status = 'Kunjungan Ulang',
+           tanggal_terakhir = NOW()`,
+        [no_rm]
+      );
+    } catch (updateErr: any) {
+      console.warn("⚠️ Gagal update rekam_medis:", updateErr.message);
+    }
+
     return NextResponse.json({
       success: true,
-      message: "✅ Data anamnesa & resep berhasil disimpan",
+      message: "✅ Data anamnesa & resep berhasil disimpan dan rekam medis diperbarui",
     });
   } catch (err: any) {
     console.error("❌ [API ERROR] Gagal simpan anamnesa:", err);

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Swal from "sweetalert2";
 
 interface Pasien {
   no_rm: string;
@@ -38,39 +39,40 @@ export default function PasienSelectPage() {
   ]);
 
   // 🔹 Ambil daftar pasien dari API
-  useEffect(() => {
-    async function fetchData() {
-      setLoading(true);
-      try {
-        const res = await fetch("/api/pasien/select");
-        const result = await res.json();
+  async function fetchData() {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/pasien/select");
+      const text = await res.text();
+      const result = text ? JSON.parse(text) : [];
 
-        console.log("🔍 Hasil Fetch Pasien:", result);
-
-        if (Array.isArray(result)) {
-          setDataPasien(result);
-        } else if (result.data && Array.isArray(result.data)) {
-          setDataPasien(result.data);
-        } else {
-          console.error("⚠️ Format data tidak dikenali:", result);
-          setDataPasien([]);
-        }
-      } catch (err) {
-        console.error("❌ Gagal ambil data pasien:", err);
+      if (Array.isArray(result)) {
+        setDataPasien(result);
+      } else if (result.data && Array.isArray(result.data)) {
+        setDataPasien(result.data);
+      } else {
+        console.error("⚠️ Format data tidak dikenali:", result);
         setDataPasien([]);
-      } finally {
-        setLoading(false);
       }
+    } catch (err) {
+      console.error("❌ Gagal ambil data pasien:", err);
+      setDataPasien([]);
+    } finally {
+      setLoading(false);
     }
+  }
+
+  useEffect(() => {
     fetchData();
   }, []);
 
-  // 🔹 Fungsi Modal
+  // 🔹 Modal Tambah Kunjungan
   const handleTambahKunjungan = (pasien: Pasien) => {
     setSelectedPasien(pasien);
     setShowModal(true);
   };
 
+  // 🔹 Tambah, Hapus, dan Ubah Resep
   const handleTambahObat = () => {
     setResepList([...resepList, { nama_obat: "", dosis: "", aturan: "" }]);
   };
@@ -89,11 +91,18 @@ export default function PasienSelectPage() {
 
   // 🔹 Submit Anamnesa + Resep
   const handleSubmit = async () => {
-    if (!selectedPasien) return alert("Pilih pasien terlebih dahulu!");
+    if (!selectedPasien) return Swal.fire("⚠️", "Pilih pasien terlebih dahulu!", "warning");
     if (!form.keluhan.trim() || !form.tensi.trim())
-      return alert("Keluhan dan Tensi wajib diisi!");
+      return Swal.fire("⚠️", "Keluhan dan Tensi wajib diisi!", "warning");
 
     try {
+      Swal.fire({
+        title: "Menyimpan...",
+        text: "Mohon tunggu sebentar",
+        allowOutsideClick: false,
+        didOpen: () => Swal.showLoading(),
+      });
+
       const res = await fetch("/api/anamnesa", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -104,24 +113,75 @@ export default function PasienSelectPage() {
         }),
       });
 
-      const result = await res.json();
+      const text = await res.text();
+      const result = text ? JSON.parse(text) : {};
+
       if (result.success) {
-        alert("✅ Kunjungan baru & resep berhasil disimpan!");
+        await Swal.fire("✅", "Kunjungan baru & resep berhasil disimpan!", "success");
         setShowModal(false);
-        setForm({
-          keluhan: "",
-          riwayat: "",
-          tensi: "",
-          hasil_lab: "",
-        });
+        setForm({ keluhan: "", riwayat: "", tensi: "", hasil_lab: "" });
         setResepList([{ nama_obat: "", dosis: "", aturan: "" }]);
         window.location.href = `/rekam-medis/${selectedPasien.no_rm}`;
       } else {
-        alert("❌ Gagal menambah kunjungan: " + result.message);
+        Swal.fire("❌", result.message || "Gagal menambah kunjungan!", "error");
       }
     } catch (err) {
-      alert("❌ Terjadi kesalahan saat menyimpan data!");
+      Swal.fire("❌", "Terjadi kesalahan saat menyimpan data!", "error");
       console.error(err);
+    }
+  };
+
+  // 🔹 Hapus pasien permanen (pakai SweetAlert2)
+  const handleDeletePasien = async (no_rm: string) => {
+    const confirmResult = await Swal.fire({
+      title: "Hapus Pasien?",
+      text: `Data pasien dengan No.RM ${no_rm} akan dihapus permanen beserta seluruh data terkait!`,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Ya, hapus!",
+      cancelButtonText: "Batal",
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#3085d6",
+    });
+
+    if (!confirmResult.isConfirmed) return;
+
+    try {
+      Swal.fire({
+        title: "Menghapus...",
+        text: "Mohon tunggu sebentar",
+        allowOutsideClick: false,
+        didOpen: () => Swal.showLoading(),
+      });
+
+      const res = await fetch(`/api/pasien/delete?no_rm=${no_rm}`, {
+        method: "DELETE",
+      });
+      const text = await res.text();
+      const result = text ? JSON.parse(text) : {};
+
+      if (result.success) {
+        await Swal.fire({
+          title: "Berhasil!",
+          text: "Data pasien dan seluruh riwayatnya telah dihapus.",
+          icon: "success",
+          confirmButtonColor: "#3085d6",
+        });
+        fetchData();
+      } else {
+        await Swal.fire({
+          title: "Gagal!",
+          text: result.message || "Terjadi kesalahan saat menghapus pasien.",
+          icon: "error",
+        });
+      }
+    } catch (err) {
+      console.error("❌ Error saat menghapus pasien:", err);
+      await Swal.fire({
+        title: "Terjadi Kesalahan!",
+        text: "Server gagal memproses permintaan hapus.",
+        icon: "error",
+      });
     }
   };
 
@@ -159,8 +219,8 @@ export default function PasienSelectPage() {
             </tr>
           </thead>
           <tbody>
-            {filteredPasien.map((p) => (
-              <tr key={p.no_rm} className="hover:bg-gray-50">
+            {filteredPasien.map((p, index) => (
+              <tr key={`${p.no_rm}-${index}`} className="hover:bg-gray-50">
                 <td className="border p-2">{p.no_rm}</td>
                 <td className="border p-2">{p.nama}</td>
                 <td className="border p-2">{p.alamat}</td>
@@ -176,6 +236,12 @@ export default function PasienSelectPage() {
                     onClick={() => handleTambahKunjungan(p)}
                   >
                     Tambah Kunjungan
+                  </button>
+                  <button
+                    className="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700"
+                    onClick={() => handleDeletePasien(p.no_rm)}
+                  >
+                    Hapus
                   </button>
                 </td>
               </tr>
