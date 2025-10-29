@@ -20,6 +20,7 @@ interface Resep {
   nama_obat: string;
   dosis: string;
   aturan: string;
+  status_cocok?: string; // 🩺 Tambahan baru
 }
 
 export default function PasienSelectPage() {
@@ -35,7 +36,7 @@ export default function PasienSelectPage() {
     hasil_lab: "",
   });
   const [resepList, setResepList] = useState<Resep[]>([
-    { nama_obat: "", dosis: "", aturan: "" },
+    { nama_obat: "", dosis: "", aturan: "", status_cocok: "cocok" },
   ]);
 
   // 🔹 Ambil daftar pasien dari API
@@ -74,7 +75,10 @@ export default function PasienSelectPage() {
 
   // 🔹 Tambah, Hapus, dan Ubah Resep
   const handleTambahObat = () => {
-    setResepList([...resepList, { nama_obat: "", dosis: "", aturan: "" }]);
+    setResepList([
+      ...resepList,
+      { nama_obat: "", dosis: "", aturan: "", status_cocok: "cocok" },
+    ]);
   };
 
   const handleHapusObat = (index: number) => {
@@ -83,7 +87,11 @@ export default function PasienSelectPage() {
     setResepList(newList);
   };
 
-  const handleChangeObat = (index: number, field: keyof Resep, value: string) => {
+  const handleChangeObat = (
+    index: number,
+    field: keyof Resep,
+    value: string
+  ) => {
     const newList = [...resepList];
     newList[index][field] = value;
     setResepList(newList);
@@ -91,7 +99,8 @@ export default function PasienSelectPage() {
 
   // 🔹 Submit Anamnesa + Resep
   const handleSubmit = async () => {
-    if (!selectedPasien) return Swal.fire("⚠️", "Pilih pasien terlebih dahulu!", "warning");
+    if (!selectedPasien)
+      return Swal.fire("⚠️", "Pilih pasien terlebih dahulu!", "warning");
     if (!form.keluhan.trim() || !form.tensi.trim())
       return Swal.fire("⚠️", "Keluhan dan Tensi wajib diisi!", "warning");
 
@@ -120,7 +129,7 @@ export default function PasienSelectPage() {
         await Swal.fire("✅", "Kunjungan baru & resep berhasil disimpan!", "success");
         setShowModal(false);
         setForm({ keluhan: "", riwayat: "", tensi: "", hasil_lab: "" });
-        setResepList([{ nama_obat: "", dosis: "", aturan: "" }]);
+        setResepList([{ nama_obat: "", dosis: "", aturan: "", status_cocok: "cocok" }]);
         window.location.href = `/rekam-medis/${selectedPasien.no_rm}`;
       } else {
         Swal.fire("❌", result.message || "Gagal menambah kunjungan!", "error");
@@ -187,7 +196,9 @@ export default function PasienSelectPage() {
 
   // 🔹 Filter pencarian pasien
   const filteredPasien = dataPasien.filter((p) =>
-    `${p.no_rm} ${p.nama} ${p.alamat}`.toLowerCase().includes(searchTerm.toLowerCase())
+    `${p.no_rm} ${p.nama} ${p.alamat}`
+      .toLowerCase()
+      .includes(searchTerm.toLowerCase())
   );
 
   if (loading) return <p className="p-4">⏳ Memuat data pasien...</p>;
@@ -292,29 +303,52 @@ export default function PasienSelectPage() {
             {/* 🔹 Form Resep */}
             <h4 className="font-semibold mb-2">💊 Resep Obat</h4>
             {resepList.map((r, index) => (
-              <div key={index} className="grid grid-cols-3 gap-2 mb-2">
+              <div key={index} className="grid grid-cols-4 gap-2 mb-2">
                 <input
                   type="text"
                   placeholder="Nama Obat"
                   value={r.nama_obat}
-                  onChange={(e) => handleChangeObat(index, "nama_obat", e.target.value)}
+                  onChange={(e) =>
+                    handleChangeObat(index, "nama_obat", e.target.value)
+                  }
                   className="border p-2 rounded"
                 />
                 <input
                   type="text"
                   placeholder="Dosis"
                   value={r.dosis}
-                  onChange={(e) => handleChangeObat(index, "dosis", e.target.value)}
+                  onChange={(e) =>
+                    handleChangeObat(index, "dosis", e.target.value)
+                  }
                   className="border p-2 rounded"
                 />
                 <input
                   type="text"
                   placeholder="Aturan Pakai"
                   value={r.aturan}
-                  onChange={(e) => handleChangeObat(index, "aturan", e.target.value)}
+                  onChange={(e) =>
+                    handleChangeObat(index, "aturan", e.target.value)
+                  }
                   className="border p-2 rounded"
                 />
-                <div className="col-span-3 text-right">
+
+                {/* 🩺 Tambahan: Pilihan Cocok / Tidak Cocok */}
+                <select
+                  value={r.status_cocok || "cocok"}
+                  onChange={(e) =>
+                    handleChangeObat(index, "status_cocok", e.target.value)
+                  }
+                  className={`border p-2 rounded text-center font-semibold ${
+                    r.status_cocok === "tidak_cocok"
+                      ? "bg-red-100 text-red-700"
+                      : "bg-green-100 text-green-700"
+                  }`}
+                >
+                  <option value="cocok">✅ Cocok</option>
+                  <option value="tidak_cocok">❌ Tidak Cocok</option>
+                </select>
+
+                <div className="col-span-4 text-right">
                   {index > 0 && (
                     <button
                       onClick={() => handleHapusObat(index)}

@@ -24,21 +24,41 @@ export async function POST(req: Request) {
 
     const anamnesa_id = anamnesaResult.insertId;
 
-    // 2️⃣ Simpan resep (jika ada)
+    // 2️⃣ Simpan resep (status kecocokan sesuai input user)
     if (Array.isArray(resep) && resep.length > 0) {
       const values = resep
         .filter((r) => r.nama_obat && r.dosis && r.aturan)
-        .map((r) => [no_rm, r.nama_obat, r.dosis, r.aturan, new Date(), anamnesa_id]);
+        .map((r) => {
+          let status = (r.status_cocok || "").toLowerCase().trim();
+
+          // 🔍 Normalisasi input status supaya konsisten
+          if (status.includes("tidak") && status.includes("cocok")) {
+            status = "tidak_cocok";
+          } else {
+            status = "cocok";
+          }
+
+          return [
+            no_rm,
+            r.nama_obat,
+            r.dosis,
+            r.aturan,
+            status,
+            new Date(),
+            anamnesa_id,
+          ];
+        });
+
       if (values.length > 0) {
         await pool.query(
-          `INSERT INTO resep (no_rm, nama_obat, dosis, aturan, tanggal, anamnesa_id)
+          `INSERT INTO resep (no_rm, nama_obat, dosis, aturan, status_cocok, tanggal, anamnesa_id)
            VALUES ?`,
           [values]
         );
       }
     }
 
-    // 🌟 3️⃣ Tambahan: update status pasien di tabel rekam_medis
+    // 3️⃣ Update status pasien di tabel rekam_medis
     try {
       await pool.query(
         `INSERT INTO rekam_medis (no_rm, status, tanggal_terakhir)
@@ -55,6 +75,7 @@ export async function POST(req: Request) {
     return NextResponse.json({
       success: true,
       message: "✅ Data anamnesa & resep berhasil disimpan dan rekam medis diperbarui",
+      anamnesa_id,
     });
   } catch (err: any) {
     console.error("❌ [API ERROR] Gagal simpan anamnesa:", err);

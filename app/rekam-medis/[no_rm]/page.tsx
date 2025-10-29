@@ -18,6 +18,7 @@ interface Resep {
   nama_obat: string;
   dosis: string;
   aturan: string;
+  status_cocok?: "cocok" | "tidak cocok";
 }
 
 interface Anamnesa {
@@ -51,20 +52,26 @@ export default function RekamMedisPage() {
 
   // Input resep
   const [resepList, setResepList] = useState<Resep[]>([
-    { nama_obat: "", dosis: "", aturan: "" },
+    { nama_obat: "", dosis: "", aturan: "", status_cocok: "cocok" },
   ]);
 
   const handleAddResep = () =>
-    setResepList([...resepList, { nama_obat: "", dosis: "", aturan: "" }]);
+    setResepList([
+      ...resepList,
+      { nama_obat: "", dosis: "", aturan: "", status_cocok: "cocok" },
+    ]);
 
+  // ✅ FIXED: tidak pakai `as any`, aman untuk TypeScript
   const handleChangeResep = (
     index: number,
     field: keyof Resep,
     value: string
   ) => {
-    const updated = [...resepList];
-    updated[index][field] = value;
-    setResepList(updated);
+    setResepList((prev) =>
+      prev.map((item, i) =>
+        i === index ? { ...item, [field]: value } : item
+      )
+    );
   };
 
   const handleRemoveResep = (index: number) =>
@@ -147,7 +154,7 @@ export default function RekamMedisPage() {
           no_rm,
           ...newKunjungan,
           resep: resepList.filter(
-            (r) => r.nama_obat && r.dosis && r.aturan
+            (r) => r.nama_obat && r.dosis && r.aturan && r.status_cocok
           ),
         }),
       });
@@ -155,10 +162,9 @@ export default function RekamMedisPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message);
 
-      // langsung refresh
       setShowModal(false);
       setNewKunjungan({ keluhan: "", riwayat: "", tensi: "", hasil_lab: "" });
-      setResepList([{ nama_obat: "", dosis: "", aturan: "" }]);
+      setResepList([{ nama_obat: "", dosis: "", aturan: "", status_cocok: "cocok" }]);
       alert("✅ Kunjungan berhasil ditambahkan!");
       router.refresh();
     } catch (err: any) {
@@ -166,7 +172,6 @@ export default function RekamMedisPage() {
     }
   };
 
-  // Loading
   if (loading)
     return <p className="text-center mt-10 text-gray-500">⏳ Memuat data...</p>;
 
@@ -309,7 +314,18 @@ export default function RekamMedisPage() {
                   <ul className="list-disc pl-5 text-sm">
                     {a.resep.map((r, j) => (
                       <li key={j}>
-                        <b>{r.nama_obat}</b> — {r.dosis} — {r.aturan}
+                        <b>{r.nama_obat}</b> — {r.dosis} — {r.aturan}{" "}
+                        <span
+                          className={`ml-2 px-2 py-0.5 text-xs rounded-full ${
+                            r.status_cocok === "tidak cocok"
+                              ? "bg-red-200 text-red-700"
+                              : "bg-green-200 text-green-700"
+                          }`}
+                        >
+                          {r.status_cocok === "tidak cocok"
+                            ? "Tidak Cocok"
+                            : "Cocok"}
+                        </span>
                       </li>
                     ))}
                   </ul>
@@ -396,7 +412,7 @@ export default function RekamMedisPage() {
               <div>
                 <label className="block font-semibold">Resep Obat</label>
                 {resepList.map((r, i) => (
-                  <div key={i} className="flex gap-2 mb-2">
+                  <div key={i} className="flex flex-wrap gap-2 mb-2">
                     <input
                       type="text"
                       placeholder="Nama Obat"
@@ -424,6 +440,16 @@ export default function RekamMedisPage() {
                         handleChangeResep(i, "aturan", e.target.value)
                       }
                     />
+                    <select
+                      className="border rounded p-1"
+                      value={r.status_cocok}
+                      onChange={(e) =>
+                        handleChangeResep(i, "status_cocok", e.target.value)
+                      }
+                    >
+                      <option value="cocok">Cocok</option>
+                      <option value="tidak cocok">Tidak Cocok</option>
+                    </select>
                     <button
                       type="button"
                       onClick={() => handleRemoveResep(i)}

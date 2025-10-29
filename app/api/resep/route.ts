@@ -11,7 +11,7 @@ const pool = mysql.createPool({
   queueLimit: 0,
 });
 
-// GET -> optional: ambil resep berdasarkan no_rm atau anamnesa_id
+// 🔹 GET -> ambil resep
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
@@ -46,11 +46,11 @@ export async function GET(req: Request) {
   }
 }
 
-// POST -> simpan resep (diagnosa boleh null)
+// 🔹 POST -> simpan resep (dengan validasi status)
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { anamnesa_id, no_rm, nama_pasien, diagnosa, nama_obat, dosis, aturan } = body;
+    const { anamnesa_id, no_rm, nama_pasien, diagnosa, nama_obat, dosis, aturan, status_cocok } = body;
 
     if (!anamnesa_id || !no_rm || !nama_obat) {
       return NextResponse.json(
@@ -59,10 +59,19 @@ export async function POST(req: Request) {
       );
     }
 
+    // 🔍 Normalisasi status cocok
+    let status = (status_cocok || "").toLowerCase().trim();
+    if (status.includes("tidak") && status.includes("cocok")) {
+      status = "tidak_cocok";
+    } else {
+      status = "cocok";
+    }
+
     const [result]: any = await pool.query(
-      `INSERT INTO resep (no_rm, nama_pasien, diagnosa, anamnesa_id, nama_obat, dosis, aturan, tanggal)
-       VALUES (?, ?, ?, ?, ?, ?, ?, NOW())`,
-      [no_rm, nama_pasien || null, diagnosa || null, anamnesa_id, nama_obat, dosis || null, aturan || null]
+      `INSERT INTO resep 
+       (no_rm, nama_pasien, diagnosa, anamnesa_id, nama_obat, dosis, aturan, tanggal, status_cocok)
+       VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), ?)`,
+      [no_rm, nama_pasien || null, diagnosa || null, anamnesa_id, nama_obat, dosis || null, aturan || null, status]
     );
 
     return NextResponse.json({

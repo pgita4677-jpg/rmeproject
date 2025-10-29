@@ -8,7 +8,7 @@ const pool = mysql.createPool({
   password: process.env.MYSQL_PASSWORD,
   database: process.env.MYSQL_DATABASE,
   port: Number(process.env.MYSQL_PORT) || 3306,
-  ssl: { rejectUnauthorized: false }, // ✅ biar koneksi Railway lancar
+  ssl: { rejectUnauthorized: false },
 });
 
 export async function PUT(req: Request, { params }: { params: { no_rm: string } }) {
@@ -16,13 +16,41 @@ export async function PUT(req: Request, { params }: { params: { no_rm: string } 
 
   try {
     const body = await req.json();
-    const { nama, alamat, tanggal_lahir, jenis_kelamin, usia, no_hp, nik } = body;
+    let { nama, alamat, tanggal_lahir, jenis_kelamin, usia, no_hp, nik } = body;
+
+    // ✅ Format tanggal agar cocok dengan MySQL (YYYY-MM-DD)
+    if (tanggal_lahir) {
+      try {
+        const dateObj = new Date(tanggal_lahir);
+        if (!isNaN(dateObj.getTime())) {
+          tanggal_lahir = dateObj.toISOString().split("T")[0];
+        } else {
+          tanggal_lahir = null;
+        }
+      } catch {
+        tanggal_lahir = null;
+      }
+    } else {
+      tanggal_lahir = null;
+    }
+
+    // ✅ Pastikan semua field terisi string, kalau kosong jadikan null
+    const safeValues = [
+      nama || null,
+      alamat || null,
+      tanggal_lahir || null,
+      jenis_kelamin || null,
+      usia || null,
+      no_hp || null,
+      nik || null,
+      no_rm,
+    ];
 
     const [result]: any = await pool.query(
-      `UPDATE pasien 
+      `UPDATE pasien
        SET nama = ?, alamat = ?, tanggal_lahir = ?, jenis_kelamin = ?, usia = ?, no_hp = ?, nik = ?
        WHERE no_rm = ?`,
-      [nama, alamat, tanggal_lahir, jenis_kelamin, usia, no_hp, nik, no_rm]
+      safeValues
     );
 
     if (result.affectedRows === 0) {

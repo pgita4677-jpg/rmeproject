@@ -14,11 +14,12 @@ export default function KunjunganPage({ no_rm }: { no_rm: string }) {
     nama_obat: "",
     dosis: "",
     aturan: "",
+    status_cocok: "Cocok ✅", // ✅ default value
   });
 
   const [loading, setLoading] = useState(false);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
@@ -31,7 +32,21 @@ export default function KunjunganPage({ no_rm }: { no_rm: string }) {
       const res = await fetch("/api/kunjungan/complete", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ no_rm, ...formData }),
+        body: JSON.stringify({
+          no_rm,
+          keluhan: formData.keluhan,
+          riwayat: formData.riwayat,
+          tensi: formData.tensi,
+          hasil_lab: formData.hasil_lab,
+          resep: [
+            {
+              nama_obat: formData.nama_obat,
+              dosis: formData.dosis,
+              aturan: formData.aturan,
+              status_cocok: formData.status_cocok, // 🩺 dikirim ke backend
+            },
+          ],
+        }),
       });
 
       const data = await res.json();
@@ -104,7 +119,7 @@ export default function KunjunganPage({ no_rm }: { no_rm: string }) {
           </div>
 
           <h2 className="text-lg font-bold mt-6">💊 Resep Obat</h2>
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-4 gap-4">
             <input
               type="text"
               name="nama_obat"
@@ -129,6 +144,15 @@ export default function KunjunganPage({ no_rm }: { no_rm: string }) {
               onChange={handleChange}
               className="border p-2 rounded-lg"
             />
+            <select
+              name="status_cocok"
+              value={formData.status_cocok}
+              onChange={handleChange}
+              className="border p-2 rounded-lg bg-white"
+            >
+              <option value="Cocok ✅">Cocok ✅</option>
+              <option value="Tidak Cocok ❌">Tidak Cocok ❌</option>
+            </select>
           </div>
 
           <div className="flex justify-between mt-8">

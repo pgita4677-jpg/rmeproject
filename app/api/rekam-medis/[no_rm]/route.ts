@@ -63,10 +63,20 @@ export async function GET(
     let resepRows: RowDataPacket[] = [];
     if (anamnesaRows.length > 0) {
       const anamnesaIds = anamnesaRows.map((a) => a.id);
+
+      // ✨ Tambahan di sini:
+      // Ambil kolom status_cocok agar ditampilkan di frontend
       const [resepData] = await conn.query<RowDataPacket[]>(
-        `SELECT * FROM resep WHERE anamnesa_id IN (?)`,
+        `SELECT id, no_rm, nama_pasien, diagnosa, anamnesa_id,
+                nama_obat, dosis, aturan, status_cocok, tanggal
+         FROM resep
+         WHERE anamnesa_id IN (?)`,
         [anamnesaIds]
       );
+
+      // 🪄 Log tambahan biar kelihatan di terminal
+      console.log("📋 Data resep diambil (termasuk status_cocok):", resepData);
+
       resepRows = resepData;
     }
 

@@ -14,7 +14,12 @@ type PasienTmp = {
   nik?: string;
 };
 
-type ResepItem = { nama_obat: string; dosis: string; aturan: string };
+type ResepItem = {
+  nama_obat: string;
+  dosis: string;
+  aturan: string;
+  status_cocok: "cocok" | "tidak cocok";
+};
 
 export default function AnamnesaPage() {
   const router = useRouter();
@@ -26,7 +31,7 @@ export default function AnamnesaPage() {
     hasil_lab: "",
   });
   const [resepList, setResepList] = useState<ResepItem[]>([
-    { nama_obat: "", dosis: "", aturan: "" },
+    { nama_obat: "", dosis: "", aturan: "", status_cocok: "cocok" },
   ]);
   const [saving, setSaving] = useState(false);
 
@@ -39,7 +44,6 @@ export default function AnamnesaPage() {
         setPasien(null);
       }
     } else {
-      // jika tidak ada data pasien sementara, redirect balik ke add
       router.push("/pasien/add");
     }
   }, [router]);
@@ -52,7 +56,7 @@ export default function AnamnesaPage() {
 
   const handleResepChange = (
     idx: number,
-    e: React.ChangeEvent<HTMLInputElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     const copy = [...resepList];
     (copy[idx] as any)[e.target.name] = e.target.value;
@@ -60,7 +64,11 @@ export default function AnamnesaPage() {
   };
 
   const addResep = () =>
-    setResepList([...resepList, { nama_obat: "", dosis: "", aturan: "" }]);
+    setResepList([
+      ...resepList,
+      { nama_obat: "", dosis: "", aturan: "", status_cocok: "cocok" },
+    ]);
+
   const removeResep = (i: number) =>
     setResepList(resepList.filter((_, idx) => idx !== i));
 
@@ -81,7 +89,7 @@ export default function AnamnesaPage() {
     const resepToSave = resepList.filter((r) => r.nama_obat.trim() !== "");
 
     const payload = {
-      pasien, // object pasien (may include no_rm if user provided)
+      pasien,
       anamnesa: form,
       resep: resepToSave,
     };
@@ -102,10 +110,7 @@ export default function AnamnesaPage() {
         return;
       }
 
-      // bersihkan tmp
       sessionStorage.removeItem("rme_patient_tmp");
-
-      // redirect ke rekam-medis dengan no_rm returned dari server
       const no_rm = data.no_rm;
       router.push(`/rekam-medis/${encodeURIComponent(no_rm)}`);
     } catch (err: any) {
@@ -119,12 +124,20 @@ export default function AnamnesaPage() {
 
   return (
     <div className="max-w-2xl mx-auto p-6 space-y-6">
-      <h1 className="text-2xl font-bold">🩺 Anamnesa — {pasien.nama || "Pasien"}</h1>
+      <h1 className="text-2xl font-bold">
+        🩺 Anamnesa — {pasien.nama || "Pasien"}
+      </h1>
 
       <div className="bg-gray-50 p-4 rounded">
-        <p><strong>No. RM (sementara):</strong> {pasien.no_rm || "(kosong)"}</p>
-        <p><strong>Nama:</strong> {pasien.nama || "-"}</p>
-        <p><strong>Usia:</strong> {pasien.usia || "-"}</p>
+        <p>
+          <strong>No. RM (sementara):</strong> {pasien.no_rm || "(kosong)"}
+        </p>
+        <p>
+          <strong>Nama:</strong> {pasien.nama || "-"}
+        </p>
+        <p>
+          <strong>Usia:</strong> {pasien.usia || "-"}
+        </p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -162,7 +175,12 @@ export default function AnamnesaPage() {
           <h2 className="text-lg font-semibold">💊 Resep Obat</h2>
 
           {resepList.map((r, idx) => (
-            <div key={idx} className="mb-3 border p-3 rounded bg-blue-50">
+            <div
+              key={idx}
+              className={`mb-3 border p-3 rounded ${
+                r.status_cocok === "cocok" ? "bg-green-100" : "bg-red-100"
+              }`}
+            >
               <input
                 name="nama_obat"
                 value={r.nama_obat}
@@ -184,6 +202,18 @@ export default function AnamnesaPage() {
                 placeholder="Aturan Pakai"
                 className="w-full border p-2 rounded mb-2"
               />
+
+              {/* Pilihan status cocok / tidak */}
+              <select
+                name="status_cocok"
+                value={r.status_cocok}
+                onChange={(e) => handleResepChange(idx, e)}
+                className="w-full border p-2 rounded mb-2 bg-white"
+              >
+                <option value="cocok">🟩 Cocok ✅</option>
+                <option value="tidak cocok">🟥 Tidak Cocok ❌</option>
+              </select>
+
               {idx > 0 && (
                 <button
                   type="button"
