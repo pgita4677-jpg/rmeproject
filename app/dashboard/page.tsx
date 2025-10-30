@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, Stethoscope, Pill, BarChart3, LogOut } from "lucide-react";
+import { Users, Stethoscope, Pill, BarChart3, LogOut, Settings } from "lucide-react";
 import { motion } from "framer-motion";
 
 export default function DashboardPage() {
@@ -33,14 +33,41 @@ export default function DashboardPage() {
   };
 
   const menu = [
-    { title: "Pasien", icon: <Users className="w-6 h-6 text-blue-500" />, link: "/pasien", desc: "Kelola data pasien di sini." },
-    { title: "Rekam Medis", icon: <Stethoscope className="w-6 h-6 text-green-500" />, link: "/rekam-medis", desc: "Kelola rekam medis di sini." },
-    { title: "Farmasi", icon: <Pill className="w-6 h-6 text-yellow-500" />, link: "/farmasi", desc: "Kelola data farmasi di sini." },
-    { title: "Laporan", icon: <BarChart3 className="w-6 h-6 text-purple-500" />, link: "/laporan", desc: "Kelola data laporan di sini." },
+    {
+      title: "Pasien",
+      icon: <Users className="w-6 h-6 text-blue-500" />,
+      link: "/pasien",
+      desc: "Kelola data pasien di sini.",
+    },
+    {
+      title: "Rekam Medis",
+      icon: <Stethoscope className="w-6 h-6 text-green-500" />,
+      link: "/rekam-medis",
+      desc: "Kelola rekam medis di sini.",
+    },
+    {
+      title: "Farmasi",
+      icon: <Pill className="w-6 h-6 text-yellow-500" />,
+      link: "/farmasi",
+      desc: "Kelola data farmasi di sini.",
+    },
+    {
+      title: "Laporan",
+      icon: <BarChart3 className="w-6 h-6 text-purple-500" />,
+      link: "/laporan",
+      desc: "Lihat dan cetak laporan di sini.",
+    },
+    {
+      title: "Setting",
+      icon: <Settings className="w-6 h-6 text-gray-700" />,
+      link: "/settings",
+      desc: "Atur akun dan preferensi aplikasi.",
+    },
   ];
 
   return (
     <div className="p-10 bg-gray-50 min-h-screen">
+      {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -53,13 +80,14 @@ export default function DashboardPage() {
         </p>
       </motion.div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+      {/* Menu Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
         {menu.map((item, idx) => (
           <motion.div
             key={item.title}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: idx * 0.15, duration: 0.5 }}
+            transition={{ delay: idx * 0.1, duration: 0.5 }}
           >
             <Card
               className="cursor-pointer hover:shadow-xl transition p-6 rounded-xl bg-white"
@@ -76,7 +104,6 @@ export default function DashboardPage() {
           </motion.div>
         ))}
       </div>
-
     </div>
   );
 }

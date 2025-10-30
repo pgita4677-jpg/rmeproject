@@ -111,6 +111,17 @@ export default function RekamMedisPage() {
 
     fetchData();
   }, [no_rm]);
+  const formatTanggalWaktu = (tanggal?: string) => {
+    if (!tanggal) return "-";
+    const fixed = tanggal.replace(" ", "T");
+    const date = new Date(fixed);
+    if (isNaN(date.getTime())) return "-";
+    return date.toLocaleDateString("id-ID",{
+      day: "2-digit",
+      month: "long",
+      year: "numeric",
+    });
+  };
 
   // Simpan edit pasien
   const handleSavePasien = async () => {
@@ -125,6 +136,7 @@ export default function RekamMedisPage() {
       if (!res.ok) throw new Error(data.message);
       alert("✅ Data pasien berhasil diperbarui!");
       setIsEditing(false);
+      setPasien(formData);
     } catch (err: any) {
       alert("❌ Gagal menyimpan data pasien: " + err.message);
     }
@@ -245,7 +257,17 @@ export default function RekamMedisPage() {
                   }
                 />
               ) : (
-                <p>{(pasien as any)?.[key] || "-"}</p>
+                <p>
+                  {key === "tanggal_lahir"
+                    ? (pasien.tanggal_lahir
+                      ? new Date(pasien.tanggal_lahir).toLocaleDateString("id-ID",{
+                        day:"2-digit",
+                        month:"long",
+                        year:"numeric",
+                      })
+                    : "-")
+                  :(pasien as any)?.[key] || "-"}
+                </p>
               )}
             </div>
           ))}
@@ -295,11 +317,7 @@ export default function RekamMedisPage() {
               <p className="text-sm text-gray-500 mb-2">
                 🕓{" "}
                 {a.created_at
-                  ? new Date(a.created_at).toLocaleDateString("id-ID", {
-                      day: "2-digit",
-                      month: "long",
-                      year: "numeric",
-                    })
+                  ? formatTanggalWaktu(a.created_at)
                   : "Tanggal tidak tersedia"}
               </p>
 
