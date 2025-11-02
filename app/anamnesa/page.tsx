@@ -18,7 +18,7 @@ type ResepItem = {
   nama_obat: string;
   dosis: string;
   aturan: string;
-  status_cocok: "cocok" | "tidak cocok";
+  status_cocok: "cocok" | "tidak_cocok";
 };
 
 export default function AnamnesaPage() {
@@ -211,7 +211,7 @@ export default function AnamnesaPage() {
                 className="w-full border p-2 rounded mb-2 bg-white"
               >
                 <option value="cocok">🟩 Cocok ✅</option>
-                <option value="tidak cocok">🟥 Tidak Cocok ❌</option>
+                <option value="tidak_cocok">🟥 Tidak Cocok ❌</option>
               </select>
 
               {idx > 0 && (

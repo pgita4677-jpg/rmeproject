@@ -9,7 +9,6 @@ export default function NavbarPublik() {
   const links = [
     { name: 'Beranda', href: '/' },
     { name: 'Tentang', href: '/about' },
-    { name: 'Kontak', href: '/kontak' },
     { name: 'Login', href: '/login' },
   ]
 

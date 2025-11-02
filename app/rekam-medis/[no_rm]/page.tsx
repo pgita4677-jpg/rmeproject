@@ -18,7 +18,7 @@ interface Resep {
   nama_obat: string;
   dosis: string;
   aturan: string;
-  status_cocok?: "cocok" | "tidak cocok";
+  status_cocok?: "cocok" | "tidak_cocok";
 }
 
 interface Anamnesa {
@@ -335,12 +335,12 @@ export default function RekamMedisPage() {
                         <b>{r.nama_obat}</b> — {r.dosis} — {r.aturan}{" "}
                         <span
                           className={`ml-2 px-2 py-0.5 text-xs rounded-full ${
-                            r.status_cocok === "tidak cocok"
+                            r.status_cocok === "tidak_cocok"
                               ? "bg-red-200 text-red-700"
                               : "bg-green-200 text-green-700"
                           }`}
                         >
-                          {r.status_cocok === "tidak cocok"
+                          {r.status_cocok === "tidak_cocok"
                             ? "Tidak Cocok"
                             : "Cocok"}
                         </span>

@@ -50,21 +50,7 @@ export default function Home() {
           />
           Login
         </Link>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="/registrasi"
-          target=""
-          rel=""
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Registrasi
-        </a>
+        
       </footer>
     </div>
   );

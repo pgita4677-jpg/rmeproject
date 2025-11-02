@@ -14,7 +14,7 @@ export default function KunjunganPage({ no_rm }: { no_rm: string }) {
     nama_obat: "",
     dosis: "",
     aturan: "",
-    status_cocok: "Cocok ✅", // ✅ default value
+    status_cocok: "cocok", // ✅ default value
   });
 
   const [loading, setLoading] = useState(false);
@@ -151,7 +151,7 @@ export default function KunjunganPage({ no_rm }: { no_rm: string }) {
               className="border p-2 rounded-lg bg-white"
             >
               <option value="Cocok ✅">Cocok ✅</option>
-              <option value="Tidak Cocok ❌">Tidak Cocok ❌</option>
+              <option value="tidak_cocok ❌">Tidak Cocok ❌</option>
             </select>
           </div>
 

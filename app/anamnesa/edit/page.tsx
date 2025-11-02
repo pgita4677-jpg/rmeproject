@@ -9,8 +9,6 @@ interface ResepItem {
 }
 
 export default function EditAnamnesaPage() {
-
-  
   const router = useRouter();
   const searchParams = useSearchParams();
   const id = searchParams.get("id");
@@ -18,19 +16,29 @@ export default function EditAnamnesaPage() {
   const [anamnesa, setAnamnesa] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  // ambil data anamnesa berdasarkan id
+  // 🔹 Ambil data anamnesa berdasarkan ID
   useEffect(() => {
     if (!id) return;
+
     const fetchData = async () => {
       try {
-        const res = await fetch(`/api/anamnesa?id=${id}`);
+        // ✅ gunakan endpoint sesuai route.ts di /api/anamnesa/[id]
+        const res = await fetch(`/api/anamnesa/${id}`);
+
+        if (!res.ok) {
+          console.error(`HTTP Error ${res.status}`);
+          setAnamnesa(null);
+          setLoading(false);
+          return;
+        }
+
         const data = await res.json();
 
-        if (data?.success && data.data?.length > 0) {
-          const a = data.data[0];
+        if (data?.success && data.data) {
+          const a = data.data;
           let resepParsed: ResepItem[] = [];
 
-          // pastikan resep selalu array
+          // ✅ Pastikan resep selalu array
           if (Array.isArray(a.resep)) {
             resepParsed = a.resep;
           } else if (typeof a.resep === "string" && a.resep.trim() !== "") {
@@ -42,6 +50,8 @@ export default function EditAnamnesaPage() {
           }
 
           setAnamnesa({ ...a, resep: resepParsed });
+        } else {
+          setAnamnesa(null);
         }
       } catch (err) {
         console.error("Gagal memuat data anamnesa:", err);
@@ -49,57 +59,83 @@ export default function EditAnamnesaPage() {
         setLoading(false);
       }
     };
+
     fetchData();
   }, [id]);
 
-  // handler untuk update field teks biasa
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  // 🔹 Handler ubah teks biasa
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
     setAnamnesa({ ...anamnesa, [e.target.name]: e.target.value });
   };
 
-  // handler untuk ubah isi resep
-  const handleResepChange = (index: number, field: keyof ResepItem, value: string) => {
+  // 🔹 Handler ubah isi resep
+  const handleResepChange = (
+    index: number,
+    field: keyof ResepItem,
+    value: string
+  ) => {
     const newResep = [...(anamnesa.resep || [])];
     newResep[index][field] = value;
     setAnamnesa({ ...anamnesa, resep: newResep });
   };
 
-  // tambah baris resep baru
+  // 🔹 Tambah baris resep baru
   const tambahResep = () => {
-    const newResep = [...(anamnesa.resep || []), { obat: "", dosis: "", aturan: "" }];
+    const newResep = [
+      ...(anamnesa.resep || []),
+      { obat: "", dosis: "", aturan: "" },
+    ];
     setAnamnesa({ ...anamnesa, resep: newResep });
   };
 
-  // simpan perubahan
+  // 🔹 Simpan perubahan ke database
   const handleSave = async () => {
     try {
-      const res = await fetch(`/api/anamnesa`, {
+      // ✅ arahkan ke endpoint PUT /api/anamnesa/[id]
+      const res = await fetch(`/api/anamnesa/${anamnesa.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(anamnesa),
       });
 
-      const result = await res.json();
+      let result;
+      try {
+        result = await res.json();
+      } catch {
+        const text = await res.text();
+        console.error("⚠️ Response bukan JSON:", text);
+        alert("Server tidak mengirim data JSON yang valid.");
+        return;
+      }
+
       if (result.success) {
-        alert("Data anamnesa berhasil diperbarui 💙");
+        alert("✅ Data anamnesa berhasil diperbarui!");
         router.push(`/rekam-medis/${anamnesa.no_rm}`);
       } else {
-        alert("Gagal memperbarui data.");
+        alert("❌ Gagal memperbarui data.");
       }
     } catch (err) {
       console.error(err);
-      alert("Terjadi kesalahan saat menyimpan data.");
+      alert("⚠️ Terjadi kesalahan saat menyimpan data.");
     }
   };
 
+  // 🔹 Tampilan loading / error
   if (loading) return <div className="p-6 text-gray-600">Memuat data...</div>;
-  if (!anamnesa) return <div className="p-6 text-red-600">Data tidak ditemukan.</div>;
+  if (!anamnesa)
+    return <div className="p-6 text-red-600">Data tidak ditemukan.</div>;
 
+  // 🔹 Render UI form edit
   return (
     <div className="max-w-3xl mx-auto p-6 bg-white shadow-md rounded-xl">
-      <h2 className="text-2xl font-semibold mb-4 text-sky-700">Edit Anamnesa</h2>
+      <h2 className="text-2xl font-semibold mb-4 text-sky-700">
+        Edit Anamnesa
+      </h2>
 
       <div className="space-y-4">
+        {/* Keluhan */}
         <div>
           <label className="block font-medium">Keluhan</label>
           <textarea
@@ -110,6 +146,7 @@ export default function EditAnamnesaPage() {
           />
         </div>
 
+        {/* Riwayat */}
         <div>
           <label className="block font-medium">Riwayat</label>
           <textarea
@@ -120,7 +157,10 @@ export default function EditAnamnesaPage() {
           />
         </div>
 
-        <h3 className="text-lg font-semibold text-sky-600 mt-6 mb-2">Resep Obat</h3>
+        {/* Resep Obat */}
+        <h3 className="text-lg font-semibold text-sky-600 mt-6 mb-2">
+          Resep Obat
+        </h3>
         {(anamnesa.resep || []).map((r: ResepItem, index: number) => (
           <div key={index} className="border rounded-lg p-3 mb-2 bg-sky-50">
             <input
@@ -134,14 +174,18 @@ export default function EditAnamnesaPage() {
               type="text"
               placeholder="Dosis"
               value={r.dosis}
-              onChange={(e) => handleResepChange(index, "dosis", e.target.value)}
+              onChange={(e) =>
+                handleResepChange(index, "dosis", e.target.value)
+              }
               className="border p-2 w-full rounded mb-2"
             />
             <input
               type="text"
               placeholder="Aturan Pakai"
               value={r.aturan}
-              onChange={(e) => handleResepChange(index, "aturan", e.target.value)}
+              onChange={(e) =>
+                handleResepChange(index, "aturan", e.target.value)
+              }
               className="border p-2 w-full rounded"
             />
           </div>
@@ -155,6 +199,7 @@ export default function EditAnamnesaPage() {
           + Tambah Resep
         </button>
 
+        {/* Tombol Aksi */}
         <div className="flex justify-end space-x-3 mt-6">
           <button
             onClick={() => router.back()}
